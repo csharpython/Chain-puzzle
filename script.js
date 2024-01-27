@@ -30,8 +30,8 @@ function fallable(obj_type){
 function update_display(){
 	for(let i=0;i<HEIGHT;i++){
 		for(let j=0;j<WIDTH;j++){
-			PUZ_BOARD_BONE[i][j].innerText = puz_board[i][j];
-			if(puz_board[i][j]==0)PUZ_BOARD_BONE[i][j].innerText = "";
+			if(puz_board[i][j]!=0)PUZ_BOARD_BONE[i][j].innerHTML = '<img src="Pictures/Orbs/'+puz_board[i][j]+'.svg" alt="'+puz_board[i][j]+'" width="40" height="40" class="notouch">';
+			else PUZ_BOARD_BONE[i][j].innerHTML = "";
 		}
 	}
 	document.querySelector("#puz_info").innerText = "Score : "+score+" Hand : "+hand;
@@ -132,6 +132,7 @@ function chain_toggler(cell){
 		chain_now=true;
 		chain_color=CELL_COLOR;
 		chain_count=1;
+		chain_used[CELL_Y][CELL_X]=true;
 		chain_yx.push([CELL_Y,CELL_X]);
 		cell.target.style.backgroundColor = "blue";
 	}

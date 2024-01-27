@@ -1,11 +1,15 @@
 table.board{
-    table-layout:fixed;
-    border:solid #333 5px;
-    border-collapse: collapse;
+	table-layout:fixed;
+	border:solid #333 5px;
+	border-collapse: collapse;
 }
 td.inboard{
-    text-align:center;
-    height: 40px;
-    width : 40px;
-    border:solid #333 3px;
+	text-align:center;
+	height: 40px;
+	width : 40px;
+	border:solid #333 3px;
+}
+img.notouch{
+	user-select: none;
+	pointer-events: none;
 }
