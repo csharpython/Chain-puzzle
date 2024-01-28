@@ -10,6 +10,7 @@ td.inboard{
 	border:solid #333 3px;
 }
 img.notouch{
+	vertical-align: middle;
 	user-select: none;
 	pointer-events: none;
 }
