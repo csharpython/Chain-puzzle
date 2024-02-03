@@ -64,7 +64,7 @@ function load_board(){
 	for(let i=0;i < HEIGHT;i++){
 		for(let j=0;j < WIDTH;j++){
 			puz_board[i][j]=0;
-			if(i+j>12)puz_board[i][j]=-1;
+			if(i==5&&j!=Math.floor(WIDTH/2))puz_board[i][j]=-1;
 		}
 	}
 }
@@ -74,9 +74,23 @@ function falling_orb(){
 	function fall_orb_seed(){
 		let refall=false;
 		for(let i=HEIGHT-1;i>0;i--)/*性質上、下から探索したほうがいい*/{
-			for(let j=0;j<WIDTH;j++){
+			for(let j=0;j<WIDTH;j++){//C-shift
 				if(puz_board[i][j]==0&&fallable(puz_board[i-1][j])){
 					puz_board[i][j]=puz_board[i-1][j];
+					puz_board[i-1][j]=0;
+					refall=true;
+				}
+			}
+			for(let j=1;j<WIDTH;j++){//L-shift
+				if(puz_board[i][j-1]==0&&fallable(puz_board[i-1][j])){
+					puz_board[i][j-1]=puz_board[i-1][j];
+					puz_board[i-1][j]=0;
+					refall=true;
+				}
+			}
+			for(let j=0;j<WIDTH-1;j++){//R-shift
+				if(puz_board[i][j+1]==0&&fallable(puz_board[i-1][j])){
+					puz_board[i][j+1]=puz_board[i-1][j];
 					puz_board[i-1][j]=0;
 					refall=true;
 				}
