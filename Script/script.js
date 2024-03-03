@@ -2,6 +2,8 @@
 const ORB_COLORS=5;
 const BASE_SCORE=100;
 const ANIM_SPEED=100;
+const SHORTEST_CHAIN=3;
+const SCORE_EXPONENT=1.5;
 // SECTOR_2:変数群
 let chain_now=false;
 let chainable=false;
@@ -10,6 +12,8 @@ let score=0;
 let hand=0;
 let chain_count=0;
 let chain_yx=[];//[[y,x],[y,x]]
+let adj_list_bool=new Array();
+let adj_list=new Array();
 let chain_used=new Array();
 let puz_board=new Array();
 //SECTOR_2.5:準const変数群
@@ -28,6 +32,7 @@ let WIDTH=0;
 // board_init() : 関数名通り
 function fallable(obj_type){
 	if(obj_type>0)return true;
+	else if(obj_type==-2) return true;
 	else return false;
 }
 function update_display(){
@@ -50,6 +55,7 @@ function load_board(){
 		tr.classList.add("puz_board_tr");
 		puz_board[i]=Array(WIDTH);
 		PUZ_BOARD_BONE[i]=Array(WIDTH);
+		adj_list_bool[i]=Array(WIDTH).fill(false);
 		chain_used[i]=Array(WIDTH).fill(false);
 			for (let j = 0; j < WIDTH; j++) {
 				let td = document.createElement("td");
@@ -64,7 +70,9 @@ function load_board(){
 	for(let i=0;i < HEIGHT;i++){
 		for(let j=0;j < WIDTH;j++){
 			puz_board[i][j]=[0,0];
-			if(i==5&&j!=Math.floor(WIDTH/2))puz_board[i][j][0]=-1;
+			if(i==5){
+				puz_board[i][j][0]=-(j%2)-1;
+			}
 		}
 	}
 }
@@ -73,9 +81,8 @@ function fall_obj(yfrom,xfrom,yto,xto){
 		puz_board[yto][xto][0]=puz_board[yfrom][xfrom][0];
 		puz_board[yfrom][xfrom][0]=0;
 		return true;
-	}else{
-		return false;
 	}
+	else return false;
 }
 function falling_orb(){
 	chainable=false;
@@ -123,11 +130,26 @@ function chain_toggler(cell){
 	const CELL_COLOR = puz_board[CELL_Y][CELL_X][0];
 	if(chain_now){//チェイン終了時の処理
 		chain_now=false;
-		if(chain_count>=3){
-			score+=Math.floor(Math.pow(chain_count,1.5)*BASE_SCORE)//1.5は適当
+		if(!chain_count<SHORTEST_CHAIN){
+			adj_list=[];
+			for(let y=0;y<HEIGHT;y++){
+				adj_list_bool[y].fill(false);
+			}
+			score+=Math.floor(Math.pow(chain_count,SCORE_EXPONENT)*BASE_SCORE);
 			hand--;
-			chain_yx.forEach(function(value){
-				puz_board[value[0]][value[1]][0]=0;
+			chain_yx.forEach(function(pos){
+				puz_board[pos[0]][pos[1]][0]=0;
+				for(let dy=-1;dy<=1;dy++){
+					const NEWPOS_Y=pos[0]+dy;
+					for(let dx=-1;dx<=1;dx++){
+						const NEWPOS_X=pos[1]+dx;
+						if(NEWPOS_Y<0||NEWPOS_Y>=HEIGHT||NEWPOS_X<0||NEWPOS_X>=WIDTH)continue;
+						if(!(chain_used[NEWPOS_Y][NEWPOS_X]||adj_list_bool[NEWPOS_Y][NEWPOS_X])){
+							adj_list.push([NEWPOS_Y,NEWPOS_X]);
+							adj_list_bool[NEWPOS_Y][NEWPOS_X]=true;
+						}
+					}
+				}
 			});
 			update_display();
 			falling_orb();
