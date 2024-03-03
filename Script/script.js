@@ -35,6 +35,10 @@ function fallable(obj_type){
 	else if(obj_type==-2) return true;
 	else return false;
 }
+function is_adj_break(obj_type){
+	if(obj_type==-2)return true;
+	else return false;
+}
 function update_display(){
 	for(let i=0;i<HEIGHT;i++){
 		for(let j=0;j<WIDTH;j++){
@@ -69,11 +73,19 @@ function load_board(){
 	}
 	for(let i=0;i < HEIGHT;i++){
 		for(let j=0;j < WIDTH;j++){
-			puz_board[i][j]=[0,0];
+			puz_board[i][j]=[0,1];
 			if(i==5){
 				puz_board[i][j][0]=-(j%2)-1;
+			}else if(i>6){
+				puz_board[i][j][0]=-2;
 			}
 		}
+	}
+}
+function break_obj(y,x,ischain){
+	puz_board[y][x][1]--;
+	if(puz_board[y][x][1]<=0||ischain){
+		puz_board[y][x][0]=puz_board[y][x][1]=0;
 	}
 }
 function fall_obj(yfrom,xfrom,yto,xto){
@@ -97,6 +109,7 @@ function falling_orb(){
 		for(let i=0;i<WIDTH;i++){
 			if(puz_board[0][i][0]==0){
 				puz_board[0][i][0]=Math.floor(Math.random()*ORB_COLORS)+1;
+				puz_board[0][i][1]=1;
 				refall=true;
 			}
 		}
@@ -130,15 +143,12 @@ function chain_toggler(cell){
 	const CELL_COLOR = puz_board[CELL_Y][CELL_X][0];
 	if(chain_now){//チェイン終了時の処理
 		chain_now=false;
-		if(!chain_count<SHORTEST_CHAIN){
+		if(!(chain_count<SHORTEST_CHAIN)){
 			adj_list=[];
-			for(let y=0;y<HEIGHT;y++){
-				adj_list_bool[y].fill(false);
-			}
 			score+=Math.floor(Math.pow(chain_count,SCORE_EXPONENT)*BASE_SCORE);
 			hand--;
 			chain_yx.forEach(function(pos){
-				puz_board[pos[0]][pos[1]][0]=0;
+				break_obj(pos[0],pos[1],true);
 				for(let dy=-1;dy<=1;dy++){
 					const NEWPOS_Y=pos[0]+dy;
 					for(let dx=-1;dx<=1;dx++){
@@ -150,6 +160,12 @@ function chain_toggler(cell){
 						}
 					}
 				}
+			});
+			adj_list.forEach(function(pos){
+				if(is_adj_break(puz_board[pos[0]][pos[1]][0])){
+					break_obj(pos[0],pos[1],false);
+				}
+				adj_list_bool[pos[0]][pos[1]]=false;
 			});
 			update_display();
 			falling_orb();
@@ -186,3 +202,5 @@ board_init();
 //1~:オーブ
 //0:無空間
 //~-1:妨害ブロック
+
+//ADJ_BREAK
