@@ -13,7 +13,7 @@ let hand=0;
 let chain_count=0;
 let chain_yx=[];//[[y,x],[y,x]]
 let adj_list_bool=new Array();
-let adj_list=new Array();
+let adj_list=new Array();// [y][x].(type | power)
 let chain_used=new Array();
 let puz_board=new Array();
 //SECTOR_2.5:準const変数群
@@ -42,7 +42,10 @@ function is_adj_break(obj_type){
 function update_display(){
 	for(let i=0;i<HEIGHT;i++){
 		for(let j=0;j<WIDTH;j++){
-			if(puz_board[i][j][0]!=0)PUZ_BOARD_BONE[i][j].innerHTML = '<img src="Pictures/Orbs/'+puz_board[i][j][0]+'.svg" alt="'+puz_board[i][j][0]+'" width="40" height="40" class="notouch">';
+			if(puz_board[i][j].type!=0)PUZ_BOARD_BONE[i][j].innerHTML = 
+				'<img src="Pictures/Orbs/'+puz_board[i][j].type+
+				'.svg" alt="'+puz_board[i][j].type+
+				'" width="40" height="40" class="notouch">';
 			else PUZ_BOARD_BONE[i][j].innerHTML = "";
 		}
 	}
@@ -64,34 +67,37 @@ function load_board(){
 			for (let j = 0; j < WIDTH; j++) {
 				let td = document.createElement("td");
 				td.classList.add("inboard");
-				tr.appendChild(td);
-				PUZ_BOARD_BONE[i][j] = td;
 				td.onmouseover = onmouce_cell;
 				td.addEventListener('click',chain_toggler);
+				tr.appendChild(td);
+				PUZ_BOARD_BONE[i][j] = td;
 			}
 		MAIN_BOARD.appendChild(tr);
 	}
 	for(let i=0;i < HEIGHT;i++){
 		for(let j=0;j < WIDTH;j++){
-			puz_board[i][j]=[0,1];
+			puz_board[i][j]={
+				type : 0,
+				power : 1
+			};
 			if(i==5){
-				puz_board[i][j][0]=-(j%2)-1;
+				puz_board[i][j].type=-(j%2)-1;
 			}else if(i>6){
-				puz_board[i][j][0]=-2;
+				puz_board[i][j].type=-2;
 			}
 		}
 	}
 }
 function break_obj(y,x,ischain){
-	puz_board[y][x][1]--;
-	if(puz_board[y][x][1]<=0||ischain){
-		puz_board[y][x][0]=puz_board[y][x][1]=0;
+	puz_board[y][x].power--;
+	if(puz_board[y][x].power<=0||ischain){
+		puz_board[y][x].type=puz_board[y][x].power=0;
 	}
 }
 function fall_obj(yfrom,xfrom,yto,xto){
-	if(puz_board[yto][xto][0]==0&&fallable(puz_board[yfrom][xfrom][0])){
-		puz_board[yto][xto][0]=puz_board[yfrom][xfrom][0];
-		puz_board[yfrom][xfrom][0]=0;
+	if(puz_board[yto][xto].type==0&&fallable(puz_board[yfrom][xfrom].type)){
+		puz_board[yto][xto].type=puz_board[yfrom][xfrom].type;
+		puz_board[yfrom][xfrom].type=0;
 		return true;
 	}
 	else return false;
@@ -107,9 +113,9 @@ function falling_orb(){
 			for(let j=0;j<WIDTH-1;j++)refall=fall_obj(i-1,j,i,j+1)||refall;//R-shift
 		}
 		for(let i=0;i<WIDTH;i++){
-			if(puz_board[0][i][0]==0){
-				puz_board[0][i][0]=Math.floor(Math.random()*ORB_COLORS)+1;
-				puz_board[0][i][1]=1;
+			if(puz_board[0][i].type==0){
+				puz_board[0][i].type=Math.floor(Math.random()*ORB_COLORS)+1;
+				puz_board[0][i].power=1;
 				refall=true;
 			}
 		}
@@ -124,12 +130,15 @@ function falling_orb(){
 function onmouce_cell(cell){
 	const CELL_Y = cell.target.parentNode.rowIndex;
 	const CELL_X = cell.target.cellIndex;
-	const CELL_COLOR = puz_board[CELL_Y][CELL_X][0];
+	const CELL_COLOR = puz_board[CELL_Y][CELL_X].type;
 	if(chain_now){
-		if(Math.abs(chain_yx.at(-1)[0]-CELL_Y)<=1&&Math.abs(chain_yx.at(-1)[1]-CELL_X)<=1)/*位置チェック*/{
+		if(Math.abs(chain_yx.at(-1).y-CELL_Y)<=1&&Math.abs(chain_yx.at(-1).x-CELL_X)<=1)/*位置チェック*/{
 			if(chain_color==CELL_COLOR&&!chain_used[CELL_Y][CELL_X])/*条件チェック*/{
 				cell.target.style.backgroundColor = "blue";
-				chain_yx.push([CELL_Y,CELL_X]);
+				chain_yx.push({
+					x : CELL_X,
+					y : CELL_Y
+				});
 				chain_used[CELL_Y][CELL_X]=true;
 				chain_count++;
 			}
@@ -140,7 +149,7 @@ function chain_toggler(cell){
 	if(!chainable)return;
 	const CELL_Y = cell.target.parentNode.rowIndex;
 	const CELL_X = cell.target.cellIndex;
-	const CELL_COLOR = puz_board[CELL_Y][CELL_X][0];
+	const CELL_COLOR = puz_board[CELL_Y][CELL_X].type;
 	if(chain_now){//チェイン終了時の処理
 		chain_now=false;
 		if(!(chain_count<SHORTEST_CHAIN)){
@@ -148,11 +157,11 @@ function chain_toggler(cell){
 			score+=Math.floor(Math.pow(chain_count,SCORE_EXPONENT)*BASE_SCORE);
 			hand--;
 			chain_yx.forEach(function(pos){
-				break_obj(pos[0],pos[1],true);
+				break_obj(pos.y,pos.x,true);
 				for(let dy=-1;dy<=1;dy++){
-					const NEWPOS_Y=pos[0]+dy;
+					const NEWPOS_Y=pos.y+dy;
 					for(let dx=-1;dx<=1;dx++){
-						const NEWPOS_X=pos[1]+dx;
+						const NEWPOS_X=pos.x+dx;
 						if(NEWPOS_Y<0||NEWPOS_Y>=HEIGHT||NEWPOS_X<0||NEWPOS_X>=WIDTH)continue;
 						if(!(chain_used[NEWPOS_Y][NEWPOS_X]||adj_list_bool[NEWPOS_Y][NEWPOS_X])){
 							adj_list.push([NEWPOS_Y,NEWPOS_X]);
@@ -162,7 +171,7 @@ function chain_toggler(cell){
 				}
 			});
 			adj_list.forEach(function(pos){
-				if(is_adj_break(puz_board[pos[0]][pos[1]][0])){
+				if(is_adj_break(puz_board[pos[0]][pos[1]].type)){
 					break_obj(pos[0],pos[1],false);
 				}
 				adj_list_bool[pos[0]][pos[1]]=false;
@@ -171,9 +180,9 @@ function chain_toggler(cell){
 			falling_orb();
 			update_display();
 		}
-		chain_yx.forEach(function(value){
-			PUZ_BOARD_BONE[value[0]][value[1]].style.backgroundColor = "transparent";
-			chain_used[value[0]][value[1]]=false;
+		chain_yx.forEach(function(pos){
+			PUZ_BOARD_BONE[pos.y][pos.x].style.backgroundColor = "transparent";
+			chain_used[pos.y][pos.x]=false;
 		});
 		chain_count=0;
 		chain_color=null;
@@ -187,7 +196,11 @@ function chain_toggler(cell){
 		chain_color=CELL_COLOR;
 		chain_count=1;
 		chain_used[CELL_Y][CELL_X]=true;
-		chain_yx.push([CELL_Y,CELL_X]);
+		console.log(CELL_X,CELL_Y);
+		chain_yx.push({
+			x : CELL_X,
+			y : CELL_Y
+		});
 		cell.target.style.backgroundColor = "blue";
 	}
 }
