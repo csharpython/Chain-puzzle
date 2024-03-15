@@ -4,6 +4,7 @@ const BASE_SCORE=100;
 const ANIM_SPEED=100;
 const SHORTEST_CHAIN=3;
 const SCORE_EXPONENT=1.5;
+const MAIN_BOARD = document.querySelector("#puz_board");
 // SECTOR_2:変数群
 let chain_now=false;
 let chainable=false;
@@ -11,11 +12,11 @@ let chain_color=0;
 let score=0;
 let hand=0;
 let chain_count=0;
-let chain_yx=[];//[[y,x],[y,x]]
+let chain_yx=new Array();//[i].(y | x);
 let adj_list_bool=new Array();
-let adj_list=new Array();// [y][x].(type | power)
+let adj_list=new Array();//[i].(y | x);
 let chain_used=new Array();
-let puz_board=new Array();
+let puz_board=new Array();// [y][x].(type | power)
 //SECTOR_2.5:準const変数群
 let PUZ_BOARD_BONE=new Array();
 let HAND_MAX=0;
@@ -44,7 +45,6 @@ function update_display(){
 		for(let j=0;j<WIDTH;j++){
 			if(puz_board[i][j].type!=0)PUZ_BOARD_BONE[i][j].innerHTML = 
 				'<img src="Pictures/Orbs/'+puz_board[i][j].type+
-				'.svg" alt="'+puz_board[i][j].type+
 				'" width="40" height="40" class="notouch">';
 			else PUZ_BOARD_BONE[i][j].innerHTML = "";
 		}
@@ -55,31 +55,26 @@ function load_board(){
 	HEIGHT=10;
 	WIDTH=10;
 	HAND_MAX=10;
-	const MAIN_BOARD = document.querySelector("#puz_board");
+	puz_board=new Array(HEIGHT).fill().map(_=>Array(WIDTH).fill().map(_=>({type : 0,power : 1})));
+	PUZ_BOARD_BONE=new Array(HEIGHT).fill().map(_=>Array(WIDTH));
+	adj_list_bool=new Array(HEIGHT).fill().map(_=>Array(WIDTH).fill(false));
+	chain_used=new Array(HEIGHT).fill().map(_=>Array(WIDTH).fill(false));
 	MAIN_BOARD.innerHTML = null;
 	for (let i = 0; i < HEIGHT; i++) {
-		let tr = document.createElement("tr");
-		tr.classList.add("puz_board_tr");
-		puz_board[i]=Array(WIDTH);
-		PUZ_BOARD_BONE[i]=Array(WIDTH);
-		adj_list_bool[i]=Array(WIDTH).fill(false);
-		chain_used[i]=Array(WIDTH).fill(false);
-			for (let j = 0; j < WIDTH; j++) {
-				let td = document.createElement("td");
-				td.classList.add("inboard");
-				td.onmouseover = onmouce_cell;
-				td.addEventListener('click',chain_toggler);
-				tr.appendChild(td);
-				PUZ_BOARD_BONE[i][j] = td;
-			}
-		MAIN_BOARD.appendChild(tr);
+		const TR = document.createElement("tr");
+		TR.classList.add("puz_board_tr");
+		for (let j = 0; j < WIDTH; j++) {
+			const TD = document.createElement("td");
+			TD.classList.add("inboard");
+			TD.onmouseover = onmouce_cell;
+			TD.addEventListener('click',chain_toggler);
+			TR.appendChild(TD);
+			PUZ_BOARD_BONE[i][j] = TD;
+		}
+		MAIN_BOARD.appendChild(TR);
 	}
 	for(let i=0;i < HEIGHT;i++){
 		for(let j=0;j < WIDTH;j++){
-			puz_board[i][j]={
-				type : 0,
-				power : 1
-			};
 			if(i==5){
 				puz_board[i][j].type=-(j%2)-1;
 			}else if(i>6){
@@ -164,17 +159,17 @@ function chain_toggler(cell){
 						const NEWPOS_X=pos.x+dx;
 						if(NEWPOS_Y<0||NEWPOS_Y>=HEIGHT||NEWPOS_X<0||NEWPOS_X>=WIDTH)continue;
 						if(!(chain_used[NEWPOS_Y][NEWPOS_X]||adj_list_bool[NEWPOS_Y][NEWPOS_X])){
-							adj_list.push([NEWPOS_Y,NEWPOS_X]);
+							adj_list.push({y : NEWPOS_Y,x : NEWPOS_X});
 							adj_list_bool[NEWPOS_Y][NEWPOS_X]=true;
 						}
 					}
 				}
 			});
 			adj_list.forEach(function(pos){
-				if(is_adj_break(puz_board[pos[0]][pos[1]].type)){
-					break_obj(pos[0],pos[1],false);
+				if(is_adj_break(puz_board[pos.y][pos.x].type)){
+					break_obj(pos.y,pos.x,false);
 				}
-				adj_list_bool[pos[0]][pos[1]]=false;
+				adj_list_bool[pos.y][pos.x]=false;
 			});
 			update_display();
 			falling_orb();
