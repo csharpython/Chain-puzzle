@@ -21,15 +21,17 @@ let PUZ_BOARD_BONE=new Array();
 let HEIGHT=0;
 let WIDTH=0;
 // SECTOR_3:関数マニュアル
-//fallable(obj_type) : 該当オブジェクトが落下物か確認
-// load_board() : [TODO] ファイルからパズルの読み込みをする
+// fallable(obj_type) : 該当オブジェクトが落下物か確認
+// is_adj_break(obj_type) : 該当オブジェクトがadj_breakを持つか確認
+// update_cell(y,x) : 1マスだけ画面を更新
 // update_display() : 関数名通り
+// obj_erase(y,x,draw=false) : 指定したマスを消す。drawなら描画する。
+// load_board() : [TODO] ファイルからパズルの読み込みをする
 // falling_orb() : 関数名通り
 	// fall_orb_seed() : オーブを落下(1マス分)
 // onmouce_cell(cell) : チェイン中の処理とかやってます
 // chain_toggler(cell) : 関数名通り
 // board_init() : 関数名通り
-function obj_erase(y,x){puz_board[y][x].obj={type : 0,power : 0}};
 function fallable(obj_type){
 	if(obj_type>0)return true;
 	else if(obj_type==-2) return true;
@@ -39,16 +41,16 @@ function is_adj_break(obj_type){
 	if(obj_type==-2)return true;
 	else return false;
 }
+function update_cell(y,x){
+	PUZ_BOARD_BONE[y][x].innerHTML = '<img src="Pictures/Orbs/'+puz_board[y][x].obj.type+'.svg" width="40" height="40" class="notouch">'
+}
 function update_display(){
-	for(let i=0;i<HEIGHT;i++){
-		for(let j=0;j<WIDTH;j++){
-			if(puz_board[i][j].obj.type!=0)PUZ_BOARD_BONE[i][j].innerHTML = 
-				'<img src="Pictures/Orbs/'+puz_board[i][j].obj.type+
-				'.svg" width="40" height="40" class="notouch">';
-			else PUZ_BOARD_BONE[i][j].innerHTML = "";
-		}
-	}
+	for(let i=0;i<HEIGHT;i++)for(let j=0;j<WIDTH;j++)update_cell(i,j);
 	document.querySelector("#puz_info").innerText = "Score : "+score+" Hand : "+hand;
+}
+function obj_erase(y,x,draw=false){
+	puz_board[y][x].obj={type : 0,power : 0};
+	if(draw)update_cell(y,x);
 }
 function load_board(){
 	HEIGHT=10;
@@ -82,14 +84,15 @@ function load_board(){
 		}
 	}
 }
-function break_obj(y,x,ischain){
+function break_obj(y,x,ischain,draw=false){
 	puz_board[y][x].obj.power--;
-	if(puz_board[y][x].obj.power<=0||ischain)obj_erase(y,x);
+	if(puz_board[y][x].obj.power<=0||ischain)obj_erase(y,x,draw);
 }
-function fall_obj(yfrom,xfrom,yto,xto){
+function fall_obj(yfrom,xfrom,yto,xto,draw=false){
 	if(puz_board[yto][xto].obj.type==0&&fallable(puz_board[yfrom][xfrom].obj.type)){
 		puz_board[yto][xto].obj.type=puz_board[yfrom][xfrom].obj.type;
-		obj_erase(yfrom,xfrom);
+		if(draw)update_cell(yto,xto);
+		obj_erase(yfrom,xfrom,draw);
 		return true;
 	}
 	else return false;
@@ -126,10 +129,7 @@ function onmouce_cell(cell){
 		if(Math.abs(chain_yx.at(-1).y-CELL_Y)<=1&&Math.abs(chain_yx.at(-1).x-CELL_X)<=1)/*位置チェック*/{
 			if(chain_info.color==CELL_COLOR&&!chain_used[CELL_Y][CELL_X])/*条件チェック*/{
 				cell.target.style.backgroundColor = "blue";
-				chain_yx.push({
-					x : CELL_X,
-					y : CELL_Y
-				});
+				chain_yx.push({x : CELL_X,y : CELL_Y});
 				chain_used[CELL_Y][CELL_X]=true;
 				chain_info.count++;
 			}
@@ -148,7 +148,7 @@ function chain_toggler(cell){
 			score+=Math.floor(Math.pow(chain_info.count,SCORE_EXPONENT)*BASE_SCORE);
 			hand--;
 			chain_yx.forEach(function(pos){
-				break_obj(pos.y,pos.x,true);
+				break_obj(pos.y,pos.x,false);
 				for(let dy=-1;dy<=1;dy++){
 					const NEWPOS_Y=pos.y+dy;
 					for(let dx=-1;dx<=1;dx++){
@@ -169,7 +169,6 @@ function chain_toggler(cell){
 			});
 			update_display();
 			falling_orb();
-			update_display();
 		}
 		chain_yx.forEach(function(pos){
 			PUZ_BOARD_BONE[pos.y][pos.x].style.backgroundColor = "transparent";
