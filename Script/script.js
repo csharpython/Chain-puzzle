@@ -41,9 +41,7 @@ function is_adj_break(obj_type){
 	if(obj_type==-2)return true;
 	else return false;
 }
-function update_cell(y,x){
-	PUZ_BOARD_BONE[y][x].innerHTML = '<img src="Pictures/Orbs/'+puz_board[y][x].obj.type+'.svg" width="40" height="40" class="notouch">'
-}
+function update_cell(y,x){PUZ_BOARD_BONE[y][x].querySelector("img").src = 'Pictures/Orbs/'+puz_board[y][x].obj.type+'.svg'}
 function update_display(){
 	for(let i=0;i<HEIGHT;i++)for(let j=0;j<WIDTH;j++)update_cell(i,j);
 	document.querySelector("#puz_info").innerText = "Score : "+score+" Hand : "+hand;
@@ -67,6 +65,7 @@ function load_board(){
 		for (let j = 0; j < WIDTH; j++) {
 			const TD = document.createElement("td");
 			TD.classList.add("inboard");
+			TD.innerHTML = '<img src="Pictures/Orbs/0.svg",width="40" height="40" class="notouch">';
 			TD.onmouseover = onmouce_cell;
 			TD.addEventListener('click',chain_toggler);
 			TR.appendChild(TD);
@@ -128,7 +127,7 @@ function onmouce_cell(cell){
 	if(chain_now){
 		if(Math.abs(chain_yx.at(-1).y-CELL_Y)<=1&&Math.abs(chain_yx.at(-1).x-CELL_X)<=1)/*位置チェック*/{
 			if(chain_info.color==CELL_COLOR&&!chain_used[CELL_Y][CELL_X])/*条件チェック*/{
-				cell.target.style.backgroundColor = "blue";
+				cell.target.querySelector("img").classList.add("chaining");
 				chain_yx.push({x : CELL_X,y : CELL_Y});
 				chain_used[CELL_Y][CELL_X]=true;
 				chain_info.count++;
@@ -171,7 +170,7 @@ function chain_toggler(cell){
 			falling_orb();
 		}
 		chain_yx.forEach(function(pos){
-			PUZ_BOARD_BONE[pos.y][pos.x].style.backgroundColor = "transparent";
+			PUZ_BOARD_BONE[pos.y][pos.x].querySelector("img").classList.remove("chaining");
 			chain_used[pos.y][pos.x]=false;
 		});
 		chain_info={count : 0,color : null};
@@ -185,7 +184,7 @@ function chain_toggler(cell){
 		chain_info={count : 1,color : CELL_COLOR};
 		chain_used[CELL_Y][CELL_X]=true;
 		chain_yx.push({x : CELL_X,y : CELL_Y});
-		cell.target.style.backgroundColor = "blue";
+		cell.target.querySelector("img").classList.add("chaining");
 	}
 }
 function board_init(){//この関数はhttps://bubudoufu.com/sudoku/ を参考に作成

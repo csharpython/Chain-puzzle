@@ -9,6 +9,9 @@ td.inboard{
 	width : 40px;
 	border:solid #333 3px;
 }
+img.chaining{
+	opacity: 0.5;
+}
 img.notouch{
 	vertical-align: middle;
 	user-select: none;
