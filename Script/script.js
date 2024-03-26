@@ -46,9 +46,9 @@ function update_display(){
 	for(let i=0;i<HEIGHT;i++)for(let j=0;j<WIDTH;j++)update_cell(i,j);
 	document.querySelector("#puz_info").innerText = "Score : "+score+" Hand : "+hand;
 }
-function obj_erase(y,x,draw=false){
+function obj_erase(y,x){
 	puz_board[y][x].obj={type : 0,power : 0};
-	if(draw)update_cell(y,x);
+	update_cell(y,x);
 }
 function load_board(){
 	HEIGHT=10;
@@ -65,10 +65,11 @@ function load_board(){
 		for (let j = 0; j < WIDTH; j++) {
 			const TD = document.createElement("td");
 			TD.classList.add("inboard");
-			TD.innerHTML = '<img src="Pictures/Orbs/0.svg",width="40" height="40" class="notouch">';
 			TD.onmouseover = onmouce_cell;
 			TD.addEventListener('click',chain_toggler);
 			TR.appendChild(TD);
+			TD.innerHTML = '<img src="Pictures/Orbs/0.svg",width="40" height="40" class="upper notouch">'+
+							'<img src="Pictures/Fields/1.svg",width="40" height="40" class="notouch">';
 			PUZ_BOARD_BONE[i][j] = TD;
 		}
 		MAIN_BOARD.appendChild(TR);
@@ -83,15 +84,15 @@ function load_board(){
 		}
 	}
 }
-function break_obj(y,x,ischain,draw=false){
+function break_obj(y,x,ischain){
 	puz_board[y][x].obj.power--;
-	if(puz_board[y][x].obj.power<=0||ischain)obj_erase(y,x,draw);
+	if(puz_board[y][x].obj.power<=0||ischain)obj_erase(y,x);
 }
-function fall_obj(yfrom,xfrom,yto,xto,draw=false){
+function fall_obj(yfrom,xfrom,yto,xto){
 	if(puz_board[yto][xto].obj.type==0&&fallable(puz_board[yfrom][xfrom].obj.type)){
 		puz_board[yto][xto].obj.type=puz_board[yfrom][xfrom].obj.type;
-		if(draw)update_cell(yto,xto);
-		obj_erase(yfrom,xfrom,draw);
+		update_cell(yto,xto);
+		obj_erase(yfrom,xfrom);
 		return true;
 	}
 	else return false;
@@ -123,6 +124,8 @@ function falling_orb(){
 function onmouce_cell(cell){
 	const CELL_Y = cell.target.parentNode.rowIndex;
 	const CELL_X = cell.target.cellIndex;
+	
+	console.log(CELL_Y,CELL_X);
 	const CELL_COLOR = puz_board[CELL_Y][CELL_X].obj.type;
 	if(chain_now){
 		if(Math.abs(chain_yx.at(-1).y-CELL_Y)<=1&&Math.abs(chain_yx.at(-1).x-CELL_X)<=1)/*位置チェック*/{
@@ -187,7 +190,7 @@ function chain_toggler(cell){
 		cell.target.querySelector("img").classList.add("chaining");
 	}
 }
-function board_init(){//この関数はhttps://bubudoufu.com/sudoku/ を参考に作成
+function board_init(){
 	load_board();
 	falling_orb();
 	score=0;

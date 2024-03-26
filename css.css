@@ -5,15 +5,22 @@ table.board{
 }
 td.inboard{
 	text-align:center;
+	position: relative;
+	display: inline-block;
 	height: 40px;
 	width : 40px;
 	border:solid #333 3px;
 }
 img.chaining{
-	opacity: 0.5;
+	opacity: 0.7;
 }
 img.notouch{
 	vertical-align: middle;
 	user-select: none;
 	pointer-events: none;
+}
+img.upper{
+	position: absolute;
+	right: 0%;
+	bottom: 0%;
 }
