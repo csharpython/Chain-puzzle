@@ -85,13 +85,14 @@ function break_obj(y,x,ischain,isobj=true){
 	const TARGET = isobj?puz_board[y][x].obj:puz_board[y][x].field;
 	TARGET.power--;
 	if(TARGET.power<=0||ischain){
+		if(!isobj&&TARGET.type==1)score+=BASE_SCORE;
 		obj_erase(y,x,isobj);
 		isobj && dest_sync(puz_board[y][x].field.type) && break_obj(y,x,false,false);
 	}
 }
 function fall_obj(yfrom,xfrom,yto,xto){
 	const [OBJ_TO,OBJ_FROM] = [puz_board[yto][xto].obj,puz_board[yfrom][xfrom].obj];
-	if(OBJ_TO.type==0&&fallable(OBJ_FROM.type)){
+	if(OBJ_TO.type == 0 && fallable(OBJ_FROM.type) ){
 		[OBJ_TO.type,OBJ_TO.power]=[OBJ_FROM.type,OBJ_FROM.power];
 		update_cell(yto,xto);
 		obj_erase(yfrom,xfrom);
@@ -152,7 +153,7 @@ function chain_toggler(cell){
 					const NEWPOS_Y=pos.y+dy;
 					for(let dx=-1;dx<=1;dx++){
 						const NEWPOS_X=pos.x+dx;
-						if(NEWPOS_Y<0||NEWPOS_Y>=HEIGHT||NEWPOS_X<0||NEWPOS_X>=WIDTH)continue;//範囲内か？
+						if(!puz_board[NEWPOS_Y]||!puz_board[NEWPOS_Y][NEWPOS_X])continue;//範囲内か？
 						if(!adj_list_bool[NEWPOS_Y][NEWPOS_X]){
 							adj_list.push({y : NEWPOS_Y,x : NEWPOS_X});
 							adj_list_bool[NEWPOS_Y][NEWPOS_X]=true;
