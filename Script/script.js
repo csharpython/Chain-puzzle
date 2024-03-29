@@ -1,20 +1,18 @@
 // SECTOR_1:定数群
 const ORB_COLORS=5;
-const BASE_SCORE=100;
+const [BASE_SCORE,SCORE_EXPONENT]=[100,1.5];
 const ANIM_SPEED=100;
 const SHORTEST_CHAIN=3;
-const SCORE_EXPONENT=1.5;
 const MAIN_BOARD = document.querySelector("#puz_board");
 // SECTOR_2:変数群
-let chain_now=false;
-let chainable=false;
+let chain_now=chainable=false;
 let chain_info={color : null,count : 0};
 let score=0;
 let hand=0;
-let chain_yx=new Array();//[i].(y | x);
+let chain_yx =new Array();
+let adj_list = new Array();//[i].(y | x)
 let adj_list_bool=new Array();
-let adj_list=new Array();//[i].(y | x);
-let chain_used=new Array();
+let chain_used=new Array();// [i][j]
 let puz_board=new Array();// [y][x].(obj | field).(type | power)
 //SECTOR_2.5:準const変数群
 let PUZ_BOARD_BONE=new Array();
@@ -32,16 +30,12 @@ let WIDTH=0;
 // onmouce_cell(cell) : チェイン中の処理とかやってます
 // chain_toggler(cell) : 関数名通り
 // board_init() : 関数名通り
-function fallable(obj_type){
-	if(obj_type>0)return true;
-	else if(obj_type==-2) return true;
-	else return false;
+const fallable = obj_type => (obj_type>0)||[-2].includes(obj_type);
+const is_adj_break = obj_type => [-2].includes(obj_type);
+const dest_sync = field_type => [1].includes(field_type);
+function update_cell(y,x){
+	PUZ_BOARD_BONE[y][x].querySelector("img").src = 'Pictures/Orbs/'+puz_board[y][x].obj.type+'.svg'
 }
-function is_adj_break(obj_type){
-	if(obj_type==-2)return true;
-	else return false;
-}
-function update_cell(y,x){PUZ_BOARD_BONE[y][x].querySelector("img").src = 'Pictures/Orbs/'+puz_board[y][x].obj.type+'.svg'}
 function update_display(){
 	for(let i=0;i<HEIGHT;i++)for(let j=0;j<WIDTH;j++)update_cell(i,j);
 	document.querySelector("#puz_info").innerText = "Score : "+score+" Hand : "+hand;
@@ -51,13 +45,11 @@ function obj_erase(y,x){
 	update_cell(y,x);
 }
 function load_board(){
-	HEIGHT=10;
-	WIDTH=10;
+	[HEIGHT,WIDTH]=[10,10];
 	hand=10;
-	puz_board=new Array(HEIGHT).fill().map(_=>Array(WIDTH).fill().map(_=>({obj : {type : 0,power : 1},field : undefined})));
+	puz_board=new Array(HEIGHT).fill().map(_=>Array(WIDTH).fill().map(_=>({obj : {type : 0,power : 0},field : {type : 0,power : 0}})));
 	PUZ_BOARD_BONE=new Array(HEIGHT).fill().map(_=>Array(WIDTH));
-	adj_list_bool=new Array(HEIGHT).fill().map(_=>Array(WIDTH).fill(false));
-	chain_used=new Array(HEIGHT).fill().map(_=>Array(WIDTH).fill(false));
+	adj_list_bool=chain_used=new Array(HEIGHT).fill().map(_=>Array(WIDTH).fill(false));
 	MAIN_BOARD.innerHTML = null;
 	for (let i = 0; i < HEIGHT; i++) {
 		const TR = document.createElement("tr");
@@ -68,8 +60,8 @@ function load_board(){
 			TD.onmouseover = onmouce_cell;
 			TD.addEventListener('click',chain_toggler);
 			TR.appendChild(TD);
-			TD.innerHTML = '<img src="Pictures/Orbs/0.svg",width="40" height="40" class="upper notouch">'+
-							'<img src="Pictures/Fields/1.svg",width="40" height="40" class="notouch">';
+			TD.innerHTML = `<img src="Pictures/Orbs/0.svg",width="40" height="40" class="notouch upper object">
+				<img src="Pictures/Fields/1.svg",width="40" height="40" class="notouch field">`;
 			PUZ_BOARD_BONE[i][j] = TD;
 		}
 		MAIN_BOARD.appendChild(TR);
@@ -84,13 +76,18 @@ function load_board(){
 		}
 	}
 }
-function break_obj(y,x,ischain){
-	puz_board[y][x].obj.power--;
-	if(puz_board[y][x].obj.power<=0||ischain)obj_erase(y,x);
+function break_obj(y,x,ischain,isobj=true){
+	const TARGET = isobj?puz_board[y][x].obj:puz_board[y][x].field;
+	TARGET.power--;
+	if(TARGET.power<=0||ischain){
+		obj_erase(y,x);
+		if(isobj&&dest_synk(puz_board[y][x].field.type))break_obj(y,x,false,true);
+	}
 }
 function fall_obj(yfrom,xfrom,yto,xto){
-	if(puz_board[yto][xto].obj.type==0&&fallable(puz_board[yfrom][xfrom].obj.type)){
-		puz_board[yto][xto].obj.type=puz_board[yfrom][xfrom].obj.type;
+	const [OBJ_TO,OBJ_FROM] = [puz_board[yto][xto].obj,puz_board[yfrom][xfrom].obj];
+	if(OBJ_TO.type==0&&fallable(OBJ_FROM.type)){
+		OBJ_TO.type=OBJ_FROM.type;
 		update_cell(yto,xto);
 		obj_erase(yfrom,xfrom);
 		return true;
@@ -109,7 +106,7 @@ function falling_orb(){
 		}
 		for(let i=0;i<WIDTH;i++){
 			if(puz_board[0][i].obj.type==0){
-				puz_board[0][i].obj={type : Math.floor(Math.random()*ORB_COLORS)+1,power : 1};
+				puz_board[0][i].obj={type : ~~(Math.random()*ORB_COLORS)+1,power : 1};
 				refall=true;
 			}
 		}
@@ -122,10 +119,7 @@ function falling_orb(){
 	fallseedtimer = setInterval(fall_orb_seed,ANIM_SPEED);
 }
 function onmouce_cell(cell){
-	const CELL_Y = cell.target.parentNode.rowIndex;
-	const CELL_X = cell.target.cellIndex;
-	
-	console.log(CELL_Y,CELL_X);
+	const [CELL_Y,CELL_X] = [cell.target.parentNode.rowIndex,cell.target.cellIndex];
 	const CELL_COLOR = puz_board[CELL_Y][CELL_X].obj.type;
 	if(chain_now){
 		if(Math.abs(chain_yx.at(-1).y-CELL_Y)<=1&&Math.abs(chain_yx.at(-1).x-CELL_X)<=1)/*位置チェック*/{
@@ -140,23 +134,21 @@ function onmouce_cell(cell){
 }
 function chain_toggler(cell){
 	if(!chainable)return;
-	const CELL_Y = cell.target.parentNode.rowIndex;
-	const CELL_X = cell.target.cellIndex;
+	const [CELL_Y,CELL_X] = [cell.target.parentNode.rowIndex,cell.target.cellIndex];
 	const CELL_COLOR = puz_board[CELL_Y][CELL_X].obj.type;
 	if(chain_now){//チェイン終了時の処理
 		chain_now=false;
 		if(!(chain_info.count<SHORTEST_CHAIN)){
-			adj_list=[];
-			score+=Math.floor(Math.pow(chain_info.count,SCORE_EXPONENT)*BASE_SCORE);
+			score+=~~(chain_info.count**SCORE_EXPONENT*BASE_SCORE);
 			hand--;
 			chain_yx.forEach(function(pos){
-				break_obj(pos.y,pos.x,false);
+				break_obj(pos.y,pos.x,true);
 				for(let dy=-1;dy<=1;dy++){
 					const NEWPOS_Y=pos.y+dy;
 					for(let dx=-1;dx<=1;dx++){
 						const NEWPOS_X=pos.x+dx;
-						if(NEWPOS_Y<0||NEWPOS_Y>=HEIGHT||NEWPOS_X<0||NEWPOS_X>=WIDTH)continue;//範囲内か？
-						if(!(chain_used[NEWPOS_Y][NEWPOS_X]||adj_list_bool[NEWPOS_Y][NEWPOS_X])){
+						if(NEWPOS_Y<0||!NEWPOS_Y>=HEIGHT||NEWPOS_X<0||NEWPOS_X>=WIDTH)continue;//範囲内か？
+						if(!adj_list_bool[NEWPOS_Y][NEWPOS_X]){
 							adj_list.push({y : NEWPOS_Y,x : NEWPOS_X});
 							adj_list_bool[NEWPOS_Y][NEWPOS_X]=true;
 						}
@@ -164,9 +156,7 @@ function chain_toggler(cell){
 				}
 			});
 			adj_list.forEach(function(pos){
-				if(is_adj_break(puz_board[pos.y][pos.x].obj.type)){
-					break_obj(pos.y,pos.x,false);
-				}
+				is_adj_break(puz_board[pos.y][pos.x].obj.type) && break_obj(pos.y,pos.x,false);
 				adj_list_bool[pos.y][pos.x]=false;
 			});
 			update_display();
@@ -177,7 +167,7 @@ function chain_toggler(cell){
 			chain_used[pos.y][pos.x]=false;
 		});
 		chain_info={count : 0,color : null};
-		chain_yx=[];
+		adj_list=chain_yx=[];
 		if(hand<=0){
 			alert("ゲームオーバー！　スコアは"+score+"でした！");
 			board_init();
@@ -194,6 +184,7 @@ function board_init(){
 	load_board();
 	falling_orb();
 	score=0;
+	adj_list=chain_yx=[];
 	update_display();
 }
 board_init();
