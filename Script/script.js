@@ -5,7 +5,8 @@ const ANIM_SPEED=100;
 const SHORTEST_CHAIN=3;
 const MAIN_BOARD = document.querySelector("#puz_board");
 // SECTOR_2:変数群
-let chain_now=chainable=false;
+let chain_now
+let chainable=false;
 let chain_info={color : null,count : 0};
 let score=0;
 let hand=0;
@@ -16,8 +17,7 @@ let chain_used=new Array();// [i][j]
 let puz_board=new Array();// [y][x].(obj | field).(type | power)
 //SECTOR_2.5:準const変数群
 let PUZ_BOARD_BONE=new Array();
-let HEIGHT=0;
-let WIDTH=0;
+let [HEIGHT,WIDTH]=[0,0];
 // SECTOR_3:関数マニュアル
 // fallable(obj_type) : 該当オブジェクトが落下物か確認
 // is_adj_break(obj_type) : 該当オブジェクトがadj_breakを持つか確認
@@ -34,14 +34,16 @@ const fallable = obj_type => (obj_type>0)||[-2].includes(obj_type);
 const is_adj_break = obj_type => [-2].includes(obj_type);
 const dest_sync = field_type => [1].includes(field_type);
 function update_cell(y,x){
-	PUZ_BOARD_BONE[y][x].querySelector("img").src = 'Pictures/Orbs/'+puz_board[y][x].obj.type+'.svg'
+	PUZ_BOARD_BONE[y][x].querySelector("img.object").src = 'Pictures/Orbs/'+puz_board[y][x].obj.type+'.svg';
+	PUZ_BOARD_BONE[y][x].querySelector("img.field").src = 'Pictures/Fields/'+puz_board[y][x].field.type+'.svg'
 }
 function update_display(){
 	for(let i=0;i<HEIGHT;i++)for(let j=0;j<WIDTH;j++)update_cell(i,j);
 	document.querySelector("#puz_info").innerText = "Score : "+score+" Hand : "+hand;
 }
-function obj_erase(y,x){
-	puz_board[y][x].obj={type : 0,power : 0};
+function obj_erase(y,x,isobj=true){
+	const TARGET = isobj?puz_board[y][x].obj:puz_board[y][x].field;
+	[TARGET.type,TARGET.power] = [0,0];
 	update_cell(y,x);
 }
 function load_board(){
@@ -61,7 +63,7 @@ function load_board(){
 			TD.addEventListener('click',chain_toggler);
 			TR.appendChild(TD);
 			TD.innerHTML = `<img src="Pictures/Orbs/0.svg",width="40" height="40" class="notouch upper object">
-				<img src="Pictures/Fields/1.svg",width="40" height="40" class="notouch field">`;
+				<img src="Pictures/Fields/0.svg",width="40" height="40" class="notouch field">`;
 			PUZ_BOARD_BONE[i][j] = TD;
 		}
 		MAIN_BOARD.appendChild(TR);
@@ -69,10 +71,13 @@ function load_board(){
 	for(let i=0;i < HEIGHT;i++){
 		for(let j=0;j < WIDTH;j++){
 			if(i==5){
-				puz_board[i][j].obj.type=-(j%2)-1;
+				puz_board[i][j].obj.type=-(j%3);
 			}else if(i>6){
 				puz_board[i][j].obj.type=-2;
+				puz_board[i][j].field.type=1;
 			}
+			puz_board[i][j].field.power=1;
+			puz_board[i][j].obj.power=1;
 		}
 	}
 }
@@ -80,14 +85,14 @@ function break_obj(y,x,ischain,isobj=true){
 	const TARGET = isobj?puz_board[y][x].obj:puz_board[y][x].field;
 	TARGET.power--;
 	if(TARGET.power<=0||ischain){
-		obj_erase(y,x);
-		if(isobj&&dest_sync(puz_board[y][x].field.type))break_obj(y,x,false,true);
+		obj_erase(y,x,isobj);
+		isobj && dest_sync(puz_board[y][x].field.type) && break_obj(y,x,false,false);
 	}
 }
 function fall_obj(yfrom,xfrom,yto,xto){
 	const [OBJ_TO,OBJ_FROM] = [puz_board[yto][xto].obj,puz_board[yfrom][xfrom].obj];
 	if(OBJ_TO.type==0&&fallable(OBJ_FROM.type)){
-		OBJ_TO.type=OBJ_FROM.type;
+		[OBJ_TO.type,OBJ_TO.power]=[OBJ_FROM.type,OBJ_FROM.power];
 		update_cell(yto,xto);
 		obj_erase(yfrom,xfrom);
 		return true;
