@@ -81,7 +81,7 @@ function break_obj(y,x,ischain,isobj=true){
 	TARGET.power--;
 	if(TARGET.power<=0||ischain){
 		obj_erase(y,x);
-		if(isobj&&dest_synk(puz_board[y][x].field.type))break_obj(y,x,false,true);
+		if(isobj&&dest_sync(puz_board[y][x].field.type))break_obj(y,x,false,true);
 	}
 }
 function fall_obj(yfrom,xfrom,yto,xto){
@@ -147,7 +147,7 @@ function chain_toggler(cell){
 					const NEWPOS_Y=pos.y+dy;
 					for(let dx=-1;dx<=1;dx++){
 						const NEWPOS_X=pos.x+dx;
-						if(NEWPOS_Y<0||!NEWPOS_Y>=HEIGHT||NEWPOS_X<0||NEWPOS_X>=WIDTH)continue;//範囲内か？
+						if(NEWPOS_Y<0||NEWPOS_Y>=HEIGHT||NEWPOS_X<0||NEWPOS_X>=WIDTH)continue;//範囲内か？
 						if(!adj_list_bool[NEWPOS_Y][NEWPOS_X]){
 							adj_list.push({y : NEWPOS_Y,x : NEWPOS_X});
 							adj_list_bool[NEWPOS_Y][NEWPOS_X]=true;
