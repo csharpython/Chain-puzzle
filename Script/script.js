@@ -10,10 +10,8 @@ let chainable=false;
 let chain_info={color : null,count : 0};
 let score=0;
 let hand=0;
-let chain_yx =new Array();
+let chain_yx =new Array();//[i].(x | y)
 let adj_list = new Array();//[i].(y | x)
-let adj_list_bool=new Array();
-let chain_used=new Array();// [i][j]
 let puz_board=new Array();// [y][x].(obj | field).(type | power)
 //SECTOR_2.5:準const変数群
 let PUZ_BOARD_BONE=new Array();
@@ -51,7 +49,6 @@ function load_board(){
 	hand=10;
 	puz_board=new Array(HEIGHT).fill().map(_=>Array(WIDTH).fill().map(_=>({obj : {type : 0,power : 0},field : {type : 0,power : 0}})));
 	PUZ_BOARD_BONE=new Array(HEIGHT).fill().map(_=>Array(WIDTH));
-	adj_list_bool=chain_used=new Array(HEIGHT).fill().map(_=>Array(WIDTH).fill(false));
 	MAIN_BOARD.innerHTML = null;
 	for (let i = 0; i < HEIGHT; i++) {
 		const TR = document.createElement("tr");
@@ -129,10 +126,9 @@ function onmouce_cell(cell){
 	const CELL_COLOR = puz_board[CELL_Y][CELL_X].obj.type;
 	if(chain_now){
 		if(Math.abs(chain_yx.at(-1).y-CELL_Y)<=1&&Math.abs(chain_yx.at(-1).x-CELL_X)<=1)/*位置チェック*/{
-			if(chain_info.color==CELL_COLOR&&!chain_used[CELL_Y][CELL_X])/*条件チェック*/{
+			if(chain_info.color==CELL_COLOR&&!chain_yx.some(e => e.x == CELL_X && e.y == CELL_Y))/*条件チェック*/{
 				cell.target.querySelector("img").classList.add("chaining");
 				chain_yx.push({x : CELL_X,y : CELL_Y});
-				chain_used[CELL_Y][CELL_X]=true;
 				chain_info.count++;
 			}
 		}
@@ -150,27 +146,22 @@ function chain_toggler(cell){
 			chain_yx.forEach(function(pos){
 				break_obj(pos.y,pos.x,true);
 				for(let dy=-1;dy<=1;dy++){
-					const NEWPOS_Y=pos.y+dy;
+					const NEWY=pos.y+dy;
 					for(let dx=-1;dx<=1;dx++){
-						const NEWPOS_X=pos.x+dx;
-						if(!puz_board[NEWPOS_Y]||!puz_board[NEWPOS_Y][NEWPOS_X])continue;//範囲内か？
-						if(!adj_list_bool[NEWPOS_Y][NEWPOS_X]){
-							adj_list.push({y : NEWPOS_Y,x : NEWPOS_X});
-							adj_list_bool[NEWPOS_Y][NEWPOS_X]=true;
-						}
+						const NEWX=pos.x+dx;
+						if(!puz_board[NEWY]||!puz_board[NEWY][NEWX])continue;//範囲内か？
+						if(!adj_list.some(e => e.x == NEWX && e.y == NEWY))adj_list.push({y : NEWY,x : NEWX});
 					}
 				}
 			});
 			adj_list.forEach(function(pos){
 				is_adj_break(puz_board[pos.y][pos.x].obj.type) && break_obj(pos.y,pos.x,false);
-				adj_list_bool[pos.y][pos.x]=false;
 			});
 			update_display();
 			falling_orb();
 		}
 		chain_yx.forEach(function(pos){
 			PUZ_BOARD_BONE[pos.y][pos.x].querySelector("img").classList.remove("chaining");
-			chain_used[pos.y][pos.x]=false;
 		});
 		chain_info={count : 0,color : null};
 		adj_list=chain_yx=[];
@@ -181,7 +172,6 @@ function chain_toggler(cell){
 	}else if(CELL_COLOR>0){//チェイン開始の処理
 		chain_now=true;
 		chain_info={count : 1,color : CELL_COLOR};
-		chain_used[CELL_Y][CELL_X]=true;
 		chain_yx.push({x : CELL_X,y : CELL_Y});
 		cell.target.querySelector("img").classList.add("chaining");
 	}
