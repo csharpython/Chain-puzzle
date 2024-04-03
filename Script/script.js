@@ -4,8 +4,10 @@ const [BASE_SCORE,SCORE_EXPONENT]=[100,1.5];
 const ANIM_SPEED=100;
 const SHORTEST_CHAIN=3;
 const MAIN_BOARD = document.querySelector("#puz_board");
+const LOADFROM = "../Data/Stage/data.json";//PHPからの相対パスで指定
 // SECTOR_2:変数群
-let chain_now
+let data=null;
+let chain_now=false;
 let chainable=false;
 let chain_info={color : null,count : 0};
 let score=0;
@@ -15,7 +17,6 @@ let adj_list = new Array();//[i].(y | x)
 let puz_board=new Array();// [y][x].(obj | field).(type | power)
 //SECTOR_2.5:準const変数群
 let PUZ_BOARD_BONE=new Array();
-let [HEIGHT,WIDTH]=[0,0];
 // SECTOR_3:関数マニュアル
 // fallable(obj_type) : 該当オブジェクトが落下物か確認
 // is_adj_break(obj_type) : 該当オブジェクトがadj_breakを持つか確認
@@ -36,7 +37,7 @@ function update_cell(y,x){
 	PUZ_BOARD_BONE[y][x].querySelector("img.field").src = 'Pictures/Fields/'+puz_board[y][x].field.type+'.svg'
 }
 function update_display(){
-	for(let i=0;i<HEIGHT;i++)for(let j=0;j<WIDTH;j++)update_cell(i,j);
+	for(let i=0;i<data.size.height;i++)for(let j=0;j<data.size.width;j++)update_cell(i,j);
 	document.querySelector("#puz_info").innerText = "Score : "+score+" Hand : "+hand;
 }
 function obj_erase(y,x,isobj=true){
@@ -45,15 +46,16 @@ function obj_erase(y,x,isobj=true){
 	update_cell(y,x);
 }
 function load_board(){
-	[HEIGHT,WIDTH]=[10,10];
+	console.log(data);
+	console.assert(data.size.height>0,"HEIGHT (%d) is not more than zero",data.size.height);
 	hand=10;
-	puz_board=new Array(HEIGHT).fill().map(_=>Array(WIDTH).fill().map(_=>({obj : {type : 0,power : 0},field : {type : 0,power : 0}})));
-	PUZ_BOARD_BONE=new Array(HEIGHT).fill().map(_=>Array(WIDTH));
+	puz_board=new Array(data.size.height).fill().map(_=>Array(data.size.width).fill().map(_=>({obj : {type : 0,power : 0},field : {type : 0,power : 0}})));
+	PUZ_BOARD_BONE=new Array(data.size.height).fill().map(_=>Array(data.size.width));
 	MAIN_BOARD.innerHTML = null;
-	for (let i = 0; i < HEIGHT; i++) {
+	for (let i = 0; i < data.size.height; i++) {
 		const TR = document.createElement("tr");
 		TR.classList.add("puz_board_tr");
-		for (let j = 0; j < WIDTH; j++) {
+		for (let j = 0; j < data.size.width; j++) {
 			const TD = document.createElement("td");
 			TD.classList.add("inboard");
 			TD.onmouseover = onmouce_cell;
@@ -65,8 +67,8 @@ function load_board(){
 		}
 		MAIN_BOARD.appendChild(TR);
 	}
-	for(let i=0;i < HEIGHT;i++){
-		for(let j=0;j < WIDTH;j++){
+	for(let i=0;i < data.size.height;i++){
+		for(let j=0;j < data.size.width;j++){
 			if(i==5){
 				puz_board[i][j].obj.type=-(j%3);
 			}else if(i>6){
@@ -102,12 +104,12 @@ function falling_orb(){
 	let fallseedtimer = null;
 	function fall_orb_seed(){
 		let refall=false;
-		for(let i=HEIGHT-1;i>0;i--)/*性質上、下から探索したほうがいい*/{
-			for(let j=0;j<WIDTH;j++)refall=fall_obj(i-1,j,i,j)||refall;//C-shift
-			for(let j=1;j<WIDTH;j++)refall=fall_obj(i-1,j,i,j-1)||refall;//L-shift
-			for(let j=0;j<WIDTH-1;j++)refall=fall_obj(i-1,j,i,j+1)||refall;//R-shift
+		for(let i=data.size.height-1;i>0;i--)/*性質上、下から探索したほうがいい*/{
+			for(let j=0;j<data.size.width;j++)refall=fall_obj(i-1,j,i,j)||refall;//C-shift
+			for(let j=1;j<data.size.width;j++)refall=fall_obj(i-1,j,i,j-1)||refall;//L-shift
+			for(let j=0;j<data.size.width-1;j++)refall=fall_obj(i-1,j,i,j+1)||refall;//R-shift
 		}
-		for(let i=0;i<WIDTH;i++){
+		for(let i=0;i<data.size.width;i++){
 			if(puz_board[0][i].obj.type==0){
 				puz_board[0][i].obj={type : ~~(Math.random()*ORB_COLORS)+1,power : 1};
 				refall=true;
@@ -183,7 +185,14 @@ function board_init(){
 	adj_list=chain_yx=[];
 	update_display();
 }
-board_init();
+fetch('Script/loader.php',{
+	method:'POST',
+	headers: { 'Content-Type': 'text/plain'},
+	body: LOADFROM
+})
+.then(response => response.json())
+.then(res => {data = JSON.parse(res);})
+.then( () => board_init());
 //1~:オーブ
 //0:無空間
 //~-1:妨害ブロック
