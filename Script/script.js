@@ -4,18 +4,17 @@ const [BASE_SCORE,SCORE_EXPONENT]=[100,1.5];
 const ANIM_SPEED=100;
 const SHORTEST_CHAIN=3;
 const MAIN_BOARD = document.querySelector("#puz_board");
+const DATALINK = "../Data/Stage/1.js";
 // SECTOR_2:変数群
-let chain_now
-let chainable=false;
+let [chain_now,chainable]=[false,false];
 let chain_info={color : null,count : 0};
 let score=0;
-let hand=0;
 let chain_yx =new Array();//[i].(x | y)
 let adj_list = new Array();//[i].(y | x)
 let puz_board=new Array();// [y][x].(obj | field).(type | power)
 //SECTOR_2.5:準const変数群
 let PUZ_BOARD_BONE=new Array();
-let [HEIGHT,WIDTH]=[0,0];
+let DATA={};
 // SECTOR_3:関数マニュアル
 // fallable(obj_type) : 該当オブジェクトが落下物か確認
 // is_adj_break(obj_type) : 該当オブジェクトがadj_breakを持つか確認
@@ -36,8 +35,8 @@ function update_cell(y,x){
 	PUZ_BOARD_BONE[y][x].querySelector("img.field").src = 'Pictures/Fields/'+puz_board[y][x].field.type+'.svg'
 }
 function update_display(){
-	for(let i=0;i<HEIGHT;i++)for(let j=0;j<WIDTH;j++)update_cell(i,j);
-	document.querySelector("#puz_info").innerText = "Score : "+score+" Hand : "+hand;
+	for(let i=0;i<DATA.size.Height;i++)for(let j=0;j<DATA.size.Width;j++)update_cell(i,j);
+	document.querySelector("#puz_info").innerText = "Score : "+score+" Hand : "+DATA.target.hand;
 }
 function obj_erase(y,x,isobj=true){
 	const TARGET = isobj?puz_board[y][x].obj:puz_board[y][x].field;
@@ -45,15 +44,13 @@ function obj_erase(y,x,isobj=true){
 	update_cell(y,x);
 }
 function load_board(){
-	[HEIGHT,WIDTH]=[10,10];
-	hand=10;
-	puz_board=new Array(HEIGHT).fill().map(_=>Array(WIDTH).fill().map(_=>({obj : {type : 0,power : 0},field : {type : 0,power : 0}})));
-	PUZ_BOARD_BONE=new Array(HEIGHT).fill().map(_=>Array(WIDTH));
+	puz_board=new Array(DATA.size.Height).fill().map(_=>Array(DATA.size.Width).fill().map(_=>({obj : {type : 0,power : 0},field : {type : 0,power : 0}})));
+	PUZ_BOARD_BONE=new Array(DATA.size.Height).fill().map(_=>Array(DATA.size.Width));
 	MAIN_BOARD.innerHTML = null;
-	for (let i = 0; i < HEIGHT; i++) {
+	for (let i = 0; i < DATA.size.Height; i++) {
 		const TR = document.createElement("tr");
 		TR.classList.add("puz_board_tr");
-		for (let j = 0; j < WIDTH; j++) {
+		for (let j = 0; j < DATA.size.Width; j++) {
 			const TD = document.createElement("td");
 			TD.classList.add("inboard");
 			TD.onmouseover = onmouce_cell;
@@ -65,8 +62,8 @@ function load_board(){
 		}
 		MAIN_BOARD.appendChild(TR);
 	}
-	for(let i=0;i < HEIGHT;i++){
-		for(let j=0;j < WIDTH;j++){
+	for(let i=0;i < DATA.size.Height;i++){
+		for(let j=0;j < DATA.size.Width;j++){
 			if(i==5){
 				puz_board[i][j].obj.type=-(j%3);
 			}else if(i>6){
@@ -102,12 +99,12 @@ function falling_orb(){
 	let fallseedtimer = null;
 	function fall_orb_seed(){
 		let refall=false;
-		for(let i=HEIGHT-1;i>0;i--)/*性質上、下から探索したほうがいい*/{
-			for(let j=0;j<WIDTH;j++)refall=fall_obj(i-1,j,i,j)||refall;//C-shift
-			for(let j=1;j<WIDTH;j++)refall=fall_obj(i-1,j,i,j-1)||refall;//L-shift
-			for(let j=0;j<WIDTH-1;j++)refall=fall_obj(i-1,j,i,j+1)||refall;//R-shift
+		for(let i=DATA.size.Height-1;i>0;i--)/*性質上、下から探索したほうがいい*/{
+			for(let j=0;j<DATA.size.Width;j++)refall=fall_obj(i-1,j,i,j)||refall;//C-shift
+			for(let j=1;j<DATA.size.Width;j++)refall=fall_obj(i-1,j,i,j-1)||refall;//L-shift
+			for(let j=0;j<DATA.size.Width-1;j++)refall=fall_obj(i-1,j,i,j+1)||refall;//R-shift
 		}
-		for(let i=0;i<WIDTH;i++){
+		for(let i=0;i<DATA.size.Width;i++){
 			if(puz_board[0][i].obj.type==0){
 				puz_board[0][i].obj={type : ~~(Math.random()*ORB_COLORS)+1,power : 1};
 				refall=true;
@@ -142,7 +139,7 @@ function chain_toggler(cell){
 		chain_now=false;
 		if(!(chain_info.count<SHORTEST_CHAIN)){
 			score+=~~(chain_info.count**SCORE_EXPONENT*BASE_SCORE);
-			hand--;
+			DATA.target.hand--;
 			chain_yx.forEach(function(pos){
 				break_obj(pos.y,pos.x,true);
 				for(let dy=-1;dy<=1;dy++){
@@ -165,7 +162,7 @@ function chain_toggler(cell){
 		});
 		chain_info={count : 0,color : null};
 		adj_list=chain_yx=[];
-		if(hand<=0){
+		if(DATA.target.hand<=0){
 			alert("ゲームオーバー！　スコアは"+score+"でした！");
 			board_init();
 		}
@@ -177,13 +174,14 @@ function chain_toggler(cell){
 	}
 }
 function board_init(){
+	console.log(DATA);
 	load_board();
 	falling_orb();
 	score=0;
 	adj_list=chain_yx=[];
 	update_display();
 }
-board_init();
+import(DATALINK).then(x => {DATA = x.default ; board_init()});
 //1~:オーブ
 //0:無空間
 //~-1:妨害ブロック
