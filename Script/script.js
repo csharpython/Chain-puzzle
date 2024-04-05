@@ -30,13 +30,13 @@ let DATA={};
 const fallable = obj_type => (obj_type>0)||[-2].includes(obj_type);
 const is_adj_break = obj_type => [-2].includes(obj_type);
 const dest_sync = field_type => [1].includes(field_type);
-function update_cell(y,x){
-	PUZ_BOARD_BONE[y][x].querySelector("img.object").src = 'Pictures/Orbs/'+puz_board[y][x].obj.type+'.svg';
-	PUZ_BOARD_BONE[y][x].querySelector("img.field").src = 'Pictures/Fields/'+puz_board[y][x].field.type+'.svg'
-}
+const update_cell = (y,x) =>
+[PUZ_BOARD_BONE[y][x].querySelector("img.object").src,PUZ_BOARD_BONE[y][x].querySelector("img.field").src] = 
+[`Pictures/Orbs/${puz_board[y][x].obj.type}.svg`,`Pictures/Fields/${puz_board[y][x].field.type}.svg`];
+
 function update_display(){
 	for(let i=0;i<DATA.size.Height;i++)for(let j=0;j<DATA.size.Width;j++)update_cell(i,j);
-	document.querySelector("#puz_info").innerText = "Score : "+score+" Hand : "+DATA.target.hand;
+	document.querySelector("#puz_info").innerText = `Score : ${score} Hand : ${DATA.target.hand}`;
 }
 function obj_erase(y,x,isobj=true){
 	const TARGET = isobj?puz_board[y][x].obj:puz_board[y][x].field;
