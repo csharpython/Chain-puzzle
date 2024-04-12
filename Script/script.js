@@ -149,7 +149,7 @@ function chain_toggler(cell){
 		adj_list=chain_yx=[];
 		if(DATA.target.hand<=0){
 			alert(`ゲームオーバー！　スコアは${DATA.target.score}でした!`);
-			board_init();
+			import(DATALINK).then(x => {DATA = x.default ; board_init()});
 		}
 	}else if(CELL_COLOR>0){//チェイン開始の処理
 		chain_now=true;
@@ -159,7 +159,6 @@ function chain_toggler(cell){
 	}
 }
 function board_init(){
-	console.log(DATA);
 	load_board();
 	falling_orb();
 	DATA.target.score=0;
