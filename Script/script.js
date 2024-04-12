@@ -31,6 +31,7 @@ const dest_sync = field_type => [1].includes(field_type);
 const update_cell = (y,x) =>
 [PUZ_BOARD_BONE[y][x].querySelector("img.object").src,PUZ_BOARD_BONE[y][x].querySelector("img.field").src] = 
 [`Pictures/Orbs/${DATA.board.obj[y][x][0]}.svg`,`Pictures/Fields/${DATA.board.field[y][x][1]}.svg`];
+const object_copy = x => JSON.parse(JSON.stringify(x));
 
 function update_display(){
 	for(let i=0;i<DATA.size.Height;i++)for(let j=0;j<DATA.size.Width;j++)update_cell(i,j);
@@ -149,7 +150,7 @@ function chain_toggler(cell){
 		adj_list=chain_yx=[];
 		if(DATA.target.hand<=0){
 			alert(`ゲームオーバー！　スコアは${DATA.target.score}でした!`);
-			import(DATALINK).then(x => {DATA = x.default ; board_init()});
+			import(DATALINK).then(x => {DATA = object_copy(x.default) ; board_init()});
 		}
 	}else if(CELL_COLOR>0){//チェイン開始の処理
 		chain_now=true;
@@ -165,7 +166,7 @@ function board_init(){
 	adj_list=chain_yx=[];
 	update_display();
 }
-import(DATALINK).then(x => {DATA = x.default ; board_init()});
+import(DATALINK).then(x => {DATA = object_copy(x.default) ; board_init()});
 //1~:オーブ
 //0:無空間
 //~-1:妨害ブロック
