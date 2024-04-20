@@ -5,7 +5,10 @@ const [BASE_SCORE,SCORE_EXPONENT]=[100,1.5];
 const ANIM_SPEED=100;
 const SHORTEST_CHAIN=3;
 const MAIN_BOARD = document.querySelector("#puz_board");
+const DIV_PUZ_DISPLAY = document.querySelector("#puz_display");
+const DIV_STAGE_SELECT = document.querySelector("#stage_select");
 const DATALINK = "../Data/Stage/1.js";
+const [ALT_ORB,ALT_OBJECT,ALT_FIELD] = ["□🔴🔵🟢🟡🟣","□🧱🌸","□🥬"];
 // SECTOR_2:変数群
 let [chain_now,chainable]=[false,false];
 let chain_info={color : null,count : 0};
@@ -25,12 +28,18 @@ let DATA={};
 // onmouce_cell(cell) : チェイン中の処理とかやってます
 // chain_toggler(cell) : 関数名通り
 // board_init() : 関数名通り
+// startgame() : 関数名通り
 const fallable = obj_type => (obj_type>0)||[-2].includes(obj_type);
 const is_adj_break = obj_type => [-2].includes(obj_type);
 const dest_sync = field_type => [1].includes(field_type);
-const update_cell = (y,x) =>
-[PUZ_BOARD_BONE[y][x].querySelector("img.object").src,PUZ_BOARD_BONE[y][x].querySelector("img.field").src] = 
-[`Pictures/Orbs/${DATA.board.obj[y][x][0]}.svg`,`Pictures/Fields/${DATA.board.field[y][x][1]}.svg`];
+const alt_text = (type,isobj) => isobj?(type<0?ALT_OBJECT[-type]:ALT_ORB[type]):ALT_FIELD[type];
+const update_cell = (y,x) =>{
+	const CELL=PUZ_BOARD_BONE[y][x];
+	[CELL.querySelector("img.object").src,CELL.querySelector("img.field").src,
+	CELL.querySelector("img.object").alt,CELL.querySelector("img.field").alt] = 
+	[`Pictures/Orbs/${DATA.board.obj[y][x][0]}.svg`,`Pictures/Fields/${DATA.board.field[y][x][0]}.svg`,
+	alt_text(DATA.board.obj[y][x][0],true),alt_text(DATA.board.field[y][x][0],false)];
+}
 const object_copy = x => JSON.parse(JSON.stringify(x));
 
 const update_display = () => {
@@ -122,7 +131,8 @@ const chain_toggler = cell => {
 		adj_list=chain_yx=[];
 		if(DATA.target.hand<=0){
 			alert(`ゲームオーバー！　スコアは${DATA.target.score}でした!`);
-			import(DATALINK).then(x => {DATA = object_copy(x.default) ; board_init()});
+			DIV_STAGE_SELECT.style.display="block";
+			DIV_PUZ_DISPLAY.style.display="none";
 		}
 	}else if(CELL_COLOR>0){//チェイン開始の処理
 		chain_now=true;
@@ -143,21 +153,27 @@ const load_board = () => {
 			TD.onmouseover = onmouce_cell;
 			TD.addEventListener('click',chain_toggler);
 			TR.appendChild(TD);
-			TD.innerHTML = `<img src="Pictures/Orbs/0.svg",width="40" height="40" class="notouch upper object">
-				<img src="Pictures/Fields/0.svg",width="40" height="40" class="notouch field">`;
+			TD.innerHTML = `<img src="Pictures/Orbs/0.svg",width="40" height="40" class="notouch upper object" alt=" ">
+				<img src="Pictures/Fields/0.svg",width="40" height="40" class="notouch field" alt=" ">`;
 			PUZ_BOARD_BONE[i][j] = TD;
 		}
 		MAIN_BOARD.appendChild(TR);
 	}
 }
 const board_init = () => {
+	console.log(document.querySelector("#startbutton"));
 	load_board();
 	falling_orb();
-	DATA.target.score=0;
 	adj_list=chain_yx=[];
 	update_display();
 }
-import(DATALINK).then(x => {DATA = object_copy(x.default) ; board_init()});
+const startgame = () => {
+	DIV_STAGE_SELECT.style.display="none";
+	DIV_PUZ_DISPLAY.style.display="block";
+	import(DATALINK)
+	.then(x => {DATA = object_copy(x.default) ; board_init()});
+};
+document.querySelector("#startbutton").onclick=startgame;
 //1~:オーブ
 //0:無空間
 //~-1:妨害ブロック
