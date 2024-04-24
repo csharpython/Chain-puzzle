@@ -77,12 +77,7 @@ const falling_orb = () => {
 			for(let j=1;j<DATA.size.Width;j++)refall=fall_obj(i-1,j,i,j-1)||refall;//L-shift
 			for(let j=0;j<DATA.size.Width-1;j++)refall=fall_obj(i-1,j,i,j+1)||refall;//R-shift
 		}
-		for(let i=0;i<DATA.size.Width;i++){
-			if(DATA.board.obj[0][i][0] === 0){
-				DATA.board.obj[0][i]=[~~(Math.random()*ORB_COLORS)+1,1];
-				refall=true;
-			}
-		}
+		DATA.board.obj[0] = DATA.board.obj[0].map(x => (x[0]===0)?(refall = true , [~~(Math.random()*ORB_COLORS)+1,1]):x);
 		if(!refall){
 			clearInterval(FALL_TIMER);
 			chainable=true;
@@ -93,14 +88,12 @@ const falling_orb = () => {
 const onmouce_cell = cell => {
 	const [CELL_Y,CELL_X] = [cell.target.parentNode.rowIndex,cell.target.cellIndex];
 	const CELL_COLOR = DATA.board.obj[CELL_Y][CELL_X][0];
-	if(chain_now){
-		if(Math.abs(chain_yx.at(-1).y-CELL_Y)<=1&&Math.abs(chain_yx.at(-1).x-CELL_X)<=1)/*位置チェック*/{
-			if(chain_info.color === CELL_COLOR&&!chain_yx.some(e => e.x === CELL_X && e.y === CELL_Y))/*条件チェック*/{
-				cell.target.querySelector("img").classList.add("chaining");
-				chain_yx.push({x : CELL_X,y : CELL_Y});
-				chain_info.count++;
-			}
-		}
+	if(chain_now && 
+	Math.abs(chain_yx.at(-1).y-CELL_Y)<=1&&Math.abs(chain_yx.at(-1).x-CELL_X)<=1 /*位置チェック*/ &&
+	chain_info.color === CELL_COLOR&&!chain_yx.some(e => e.x === CELL_X && e.y === CELL_Y))/*条件チェック*/{
+		cell.target.querySelector("img").classList.add("chaining");
+		chain_yx.push({x : CELL_X,y : CELL_Y});
+		chain_info.count++;
 	}
 }
 const chain_toggler = cell => {
@@ -174,8 +167,3 @@ const startgame = () => {
 	.then(x => {DATA = object_copy(x.default) ; board_init()});
 };
 document.querySelector("#startbutton").onclick=startgame;
-//1~:オーブ
-//0:無空間
-//~-1:妨害ブロック
-
-//ADJ_BREAK
