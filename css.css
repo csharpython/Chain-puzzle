@@ -1,3 +1,6 @@
+.scene_mover{
+	display: none;
+}
 table.board{
 	table-layout:fixed;
 	border:solid #333 5px;
