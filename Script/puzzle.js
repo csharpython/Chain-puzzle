@@ -10,59 +10,50 @@ export default () => {
 	const [ALT_ORB,ALT_OBJECT,ALT_FIELD] = ["□🔴🔵🟢🟡🟣","□🧱🌸","□🥬"];
 	// SECTOR_2:変数群
 	let [chain_now,chainable]=[false,false];
-	let chain_info={color : null,count : 0};
+	let chain_color=null;
 	let chain_yx =new Array();//[i].(x | y)
 	let adj_list = new Array();//[i].(y | x)
 	//SECTOR_2.5:準const変数群
 	let PUZ_BOARD_BONE=new Array();
 	let DATA={};
 	// SECTOR_3:関数マニュアル
-	// fallable(obj_type) : 該当オブジェクトが落下物か確認
-	// is_adj_break(obj_type) : 該当オブジェクトがadj_breakを持つか確認
-	// update_cell(y,x) : 1マスだけ画面を更新
-	// update_display() : 関数名通り
-	// obj_erase(y,x,draw=false) : 指定したマスを消す。drawなら描画する。
-	// load_board() : [TODO] ファイルからパズルの読み込みをする
-	// falling_orb() : 関数名通り
 	// onmouce_cell(cell) : チェイン中の処理とかやってます
-	// chain_toggler(cell) : 関数名通り
-	// board_init() : 関数名通り
-	// startgame() : 関数名通り
-	const fallable = obj_type => (obj_type>0)||[-2].includes(obj_type);
-	const is_adj_break = obj_type => [-2].includes(obj_type);
-	const dest_sync = field_type => [1].includes(field_type);
+	const endscene = () => {
+		DIV_PUZ_DISPLAY.style.display="none";
+		document.querySelector("#move_START").onclick();
+	}
+	const getType = obj => obj[0];
+	const isnullobj = obj => getType(obj) === 0;
+	const fallable = obj => (getType(obj)>0)||[-2].includes(getType(obj));
+	const is_adj_break = obj => [-2].includes(getType(obj));
+	const dest_sync = field => [1].includes(getType(field));
 	const alt_text = (type,isobj) => isobj?(type<0?ALT_OBJECT[-type]:ALT_ORB[type]):ALT_FIELD[type];
 	const update_cell = (y,x) =>{
 		const CELL=PUZ_BOARD_BONE[y][x];
 		[CELL.querySelector("img.object").src,CELL.querySelector("img.field").src,
 		CELL.querySelector("img.object").alt,CELL.querySelector("img.field").alt] = 
-		[`Pictures/Orbs/${DATA.board.obj[y][x][0]}.svg`,`Pictures/Fields/${DATA.board.field[y][x][0]}.svg`,
-		alt_text(DATA.board.obj[y][x][0],true),alt_text(DATA.board.field[y][x][0],false)];
+		[`Pictures/Orbs/${getType(DATA.board.obj[y][x])}.svg`,`Pictures/Fields/${getType(DATA.board.field[y][x])}.svg`,
+		alt_text(getType(DATA.board.obj[y][x]),true),alt_text(getType(DATA.board.field[y][x]),false)];
 	}
 	const object_copy = x => JSON.parse(JSON.stringify(x));
-
 	const update_display = () => {
 		for(let i=0;i<DATA.size.Height;i++)for(let j=0;j<DATA.size.Width;j++)update_cell(i,j);
 		document.querySelector("#puz_info").innerText = `Score : ${DATA.target.score} Hand : ${DATA.target.hand}`;
 	}
-	const obj_erase = (y,x,isobj=true) => {
-		(isobj?DATA.board.obj:DATA.board.field)[y][x] = [0,0];
-		update_cell(y,x);
-	}
+	const obj_erase = obj => [obj[0],obj[1]] = [0,0];
 	const break_obj = (y,x,ischain,isobj=true) => {
 		const TARGET = isobj?DATA.board.obj[y][x]:DATA.board.field[y][x];
 		if(--TARGET[1]<=0||ischain){
-			if(!isobj&&TARGET[0] === 1)DATA.target.score+=BASE_SCORE;
-			obj_erase(y,x,isobj);
-			isobj && dest_sync(DATA.board.field[y][x][0]) && break_obj(y,x,false,false);
+			if(!isobj&&getType(TARGET) === 1)DATA.target.score+=BASE_SCORE;
+			obj_erase(TARGET);
+			update_cell(y,x);
+			isobj && dest_sync(DATA.board.field[y][x]) && break_obj(y,x,false,false);
 		}
 	}
-	const fall_obj = (yfrom,xfrom,yto,xto) => {
-		const [OBJ_TO,OBJ_FROM] = [DATA.board.obj[yto][xto],DATA.board.obj[yfrom][xfrom]];
-		if(OBJ_TO[0] === 0 && fallable(OBJ_FROM[0]) ){
-			[OBJ_TO[0],OBJ_TO[1]]=OBJ_FROM;
-			update_cell(yto,xto);
-			obj_erase(yfrom,xfrom);
+	const fall_obj = (obj_from,obj_to) => {
+		if(isnullobj(obj_to) && fallable(obj_from)){
+			[obj_to[0],obj_to[1]]=obj_from;
+			obj_erase(obj_from);
 			return true;
 		}
 		else return false;
@@ -72,11 +63,11 @@ export default () => {
 		const FALL_TIMER = setInterval(() => {
 			let refall=false;
 			for(let i=DATA.size.Height-1;i>0;i--)/*性質上、下から探索したほうがいい*/{
-				for(let j=0;j<DATA.size.Width;j++)refall=fall_obj(i-1,j,i,j)||refall;//C-shift
-				for(let j=1;j<DATA.size.Width;j++)refall=fall_obj(i-1,j,i,j-1)||refall;//L-shift
-				for(let j=0;j<DATA.size.Width-1;j++)refall=fall_obj(i-1,j,i,j+1)||refall;//R-shift
+				for(let j=0;j<DATA.size.Width;j++)refall=fall_obj(DATA.board.obj[i-1][j],DATA.board.obj[i][j])||refall;//C-shift
+				for(let j=1;j<DATA.size.Width;j++)refall=fall_obj(DATA.board.obj[i-1][j],DATA.board.obj[i][j-1])||refall;//L-shift
+				for(let j=0;j<DATA.size.Width-1;j++)refall=fall_obj(DATA.board.obj[i-1][j],DATA.board.obj[i][j+1])||refall;//R-shift
 			}
-			DATA.board.obj[0] = DATA.board.obj[0].map(x => (x[0]===0)?(refall = true , [~~(Math.random()*ORB_COLORS)+1,1]):x);
+			DATA.board.obj[0] = DATA.board.obj[0].map(x => isnullobj(x)?(refall = true , [~~(Math.random()*ORB_COLORS)+1,1]):x);
 			if(!refall){
 				clearInterval(FALL_TIMER);
 				chainable=true;
@@ -85,24 +76,22 @@ export default () => {
 		},ANIM_SPEED);
 	}
 	const onmouce_cell = cell => {
+		if(!chain_now) return;
 		const [CELL_Y,CELL_X] = [cell.target.parentNode.rowIndex,cell.target.cellIndex];
-		const CELL_COLOR = DATA.board.obj[CELL_Y][CELL_X][0];
-		if(chain_now && 
-		Math.abs(chain_yx.at(-1).y-CELL_Y)<=1&&Math.abs(chain_yx.at(-1).x-CELL_X)<=1 /*位置チェック*/ &&
-		chain_info.color === CELL_COLOR&&!chain_yx.some(e => e.x === CELL_X && e.y === CELL_Y))/*条件チェック*/{
-			cell.target.querySelector("img").classList.add("chaining");
-			chain_yx.push({x : CELL_X,y : CELL_Y});
-			chain_info.count++;
-		}
+		const CELL_COLOR = getType(DATA.board.obj[CELL_Y][CELL_X]);
+		if(!(Math.abs(chain_yx.at(-1).y-CELL_Y) <= 1 && Math.abs(chain_yx.at(-1).x-CELL_X)<=1)) return; /*位置チェック*/
+		if(chain_color !== CELL_COLOR || chain_yx.some(e => e.x === CELL_X && e.y === CELL_Y)) return;/*条件チェック*/
+		cell.target.querySelector("img").classList.add("chaining");
+		chain_yx.push({x : CELL_X,y : CELL_Y});
 	}
 	const chain_toggler = cell => {
 		if(!chainable)return;
 		const [CELL_Y,CELL_X] = [cell.target.parentNode.rowIndex,cell.target.cellIndex];
-		const CELL_COLOR = DATA.board.obj[CELL_Y][CELL_X][0];
+		const CELL_COLOR = getType(DATA.board.obj[CELL_Y][CELL_X]);
 		if(chain_now){//チェイン終了時の処理
 			chain_now=false;
-			if(!(chain_info.count<SHORTEST_CHAIN)){
-				DATA.target.score+=~~(chain_info.count**SCORE_EXPONENT*BASE_SCORE);
+			if(!(chain_yx.length<SHORTEST_CHAIN)){
+				DATA.target.score += ~~(chain_yx.length**SCORE_EXPONENT*BASE_SCORE);
 				DATA.target.hand--;
 				chain_yx.forEach(pos => {
 					break_obj(pos.y,pos.x,true);
@@ -114,32 +103,34 @@ export default () => {
 						}
 					}
 				});
-				adj_list.forEach(pos =>	is_adj_break(DATA.board.obj[pos.y][pos.x][0]) && break_obj(pos.y,pos.x,false));
+				adj_list.forEach(pos =>	is_adj_break(DATA.board.obj[pos.y][pos.x]) && break_obj(pos.y,pos.x,false));
 				update_display();
 				falling_orb();
 			}
 			chain_yx.forEach(pos => PUZ_BOARD_BONE[pos.y][pos.x].querySelector("img").classList.remove("chaining"));
-			chain_info={count : 0,color : null};
-			adj_list=chain_yx=[];
-			if(DATA.target.hand<=0){
+			chain_color = null;
+			adj_list = chain_yx = [];
+			if(DATA.target.hand <= 0){
 				alert(`ゲームオーバー！　スコアは${DATA.target.score}でした!`);
-				DIV_PUZ_DISPLAY.style.display="none";
-				document.querySelector("#move_START").onclick();
+				endscene();
 			}
-		}else if(CELL_COLOR>0){//チェイン開始の処理
-			chain_now=true;
-			chain_info={count : 1,color : CELL_COLOR};
+		}else if(CELL_COLOR > 0){//チェイン開始の処理
+			chain_now = true;
+			chain_color = CELL_COLOR;
 			chain_yx.push({x : CELL_X,y : CELL_Y});
 			cell.target.querySelector("img").classList.add("chaining");
 		}
 	}
 	const load_board = () => {
-		PUZ_BOARD_BONE=new Array(DATA.size.Height).fill().map(_=>Array(DATA.size.Width));
+		const [HEIGHT,WIDTH] = [DATA.size.Height,DATA.size.Width];
+		PUZ_BOARD_BONE=new Array(HEIGHT).fill().map(_=>Array(WIDTH));
 		MAIN_BOARD.innerHTML = null;
-		for (let i = 0; i < DATA.size.Height; i++) {
+		if(HEIGHT <= 0){console.error(`GUARD! ${HEIGHT} is not positive`); return endscene();}
+		if(WIDTH <= 0){console.error(`GUARD! ${WIDTH} is not positive`); return endscene();}
+		for (let i = 0; i < HEIGHT; i++) {
 			const TR = document.createElement("tr");
 			TR.classList.add("puz_board_tr");
-			for (let j = 0; j < DATA.size.Width; j++) {
+			for (let j = 0; j < WIDTH; j++) {
 				const TD = document.createElement("td");
 				TD.classList.add("inboard");
 				TD.onmouseover = onmouce_cell;
