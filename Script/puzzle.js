@@ -4,9 +4,8 @@ export default () => {
 	const [BASE_SCORE,SCORE_EXPONENT]=[100,1.5];
 	const ANIM_SPEED=100;
 	const SHORTEST_CHAIN=3;
-	const MAIN_BOARD = document.querySelector("#puz_board");
-	const DIV_PUZ_DISPLAY = document.querySelector("#puz_display");
-	const DATALINK = "../Data/Stage/1.js";
+	const MAIN_BOARD = document.getElementById('puz_board');
+	const DIV_PUZ_DISPLAY = document.getElementById('puz_display');
 	const [ALT_ORB,ALT_OBJECT,ALT_FIELD] = ["□🔴🔵🟢🟡🟣","□🧱🌸","□🥬"];
 	// SECTOR_2:変数群
 	let [chain_now,chainable]=[false,false];
@@ -20,7 +19,7 @@ export default () => {
 	// onmouce_cell(cell) : チェイン中の処理とかやってます
 	const endscene = () => {
 		DIV_PUZ_DISPLAY.style.display="none";
-		document.querySelector("#move_START").onclick();
+		document.getElementById('move_START').onclick();
 	}
 	const getType = obj => obj[0];
 	const isnullobj = obj => getType(obj) === 0;
@@ -38,7 +37,7 @@ export default () => {
 	const object_copy = x => JSON.parse(JSON.stringify(x));
 	const update_display = () => {
 		for(let i=0;i<DATA.size.Height;i++)for(let j=0;j<DATA.size.Width;j++)update_cell(i,j);
-		document.querySelector("#puz_info").innerText = `Score : ${DATA.target.score} Hand : ${DATA.target.hand}`;
+		document.getElementById('puz_info').innerText = `Score : ${DATA.target.score} Hand : ${DATA.target.hand}`;
 	}
 	const obj_erase = obj => [obj[0],obj[1]] = [0,0];
 	const break_obj = (y,x,ischain,isobj=true) => {
@@ -75,7 +74,7 @@ export default () => {
 			update_display();
 		},ANIM_SPEED);
 	}
-	const onmouce_cell = cell => {
+	const chain_connect = cell => {
 		if(!chain_now) return;
 		const [CELL_Y,CELL_X] = [cell.target.parentNode.rowIndex,cell.target.cellIndex];
 		const CELL_COLOR = getType(DATA.board.obj[CELL_Y][CELL_X]);
@@ -125,15 +124,15 @@ export default () => {
 		const [HEIGHT,WIDTH] = [DATA.size.Height,DATA.size.Width];
 		PUZ_BOARD_BONE=new Array(HEIGHT).fill().map(_=>Array(WIDTH));
 		MAIN_BOARD.innerHTML = null;
-		if(HEIGHT <= 0){console.error(`GUARD! ${HEIGHT} is not positive`); return endscene();}
-		if(WIDTH <= 0){console.error(`GUARD! ${WIDTH} is not positive`); return endscene();}
+		if(HEIGHT <= 0){console.error(`GUARD! Height : ${HEIGHT} isn't positive`); return endscene();}
+		if(WIDTH <= 0){console.error(`GUARD! Height : ${WIDTH} isn't positive`); return endscene();}
 		for (let i = 0; i < HEIGHT; i++) {
 			const TR = document.createElement("tr");
 			TR.classList.add("puz_board_tr");
 			for (let j = 0; j < WIDTH; j++) {
 				const TD = document.createElement("td");
 				TD.classList.add("inboard");
-				TD.onmouseover = onmouce_cell;
+				TD.onmouseover = chain_connect;
 				TD.addEventListener('click',chain_toggler);
 				TR.appendChild(TD);
 				TD.innerHTML = `<img src="Pictures/Orbs/0.svg",width="40" height="40" class="notouch upper object" alt=" ">
@@ -149,10 +148,17 @@ export default () => {
 		adj_list=chain_yx=[];
 		update_display();
 	}
+	/**todo : DATALINK先が存在しないときの処理*/
 	const startgame = () => {
+		const StageID = document.getElementById('StageLink').value;
+		if(isNaN(StageID)){
+			console.error(`GUARD! StageID ${StageID} is NaN`)
+			return endscene();
+		}
+		const DATALINK = "../Data/Stage/"+StageID+".js";
 		DIV_PUZ_DISPLAY.style.display="block";
 		import(DATALINK)
 		.then(x => {DATA = object_copy(x.default) ; board_init()});
 	};
-	document.querySelector("#move_GAME").onclick=startgame;
+	document.getElementById('move_GAME').onclick=startgame;
 }
