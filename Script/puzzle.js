@@ -124,8 +124,8 @@ export default () => {
 		const [HEIGHT,WIDTH] = [DATA.size.Height,DATA.size.Width];
 		PUZ_BOARD_BONE=new Array(HEIGHT).fill().map(_=>Array(WIDTH));
 		MAIN_BOARD.innerHTML = null;
-		if(HEIGHT <= 0){console.error(`GUARD! Height : ${HEIGHT} isn't positive`); return endscene();}
-		if(WIDTH <= 0){console.error(`GUARD! Height : ${WIDTH} isn't positive`); return endscene();}
+		if(HEIGHT <= 0){endscene(); throw RangeError(`GUARD! Height : ${HEIGHT} isn't positive`);}
+		if(WIDTH <= 0){endscene();throw RangeError(`GUARD! Height : ${WIDTH} isn't positive`);}
 		for (let i = 0; i < HEIGHT; i++) {
 			const TR = document.createElement("tr");
 			TR.classList.add("puz_board_tr");
@@ -148,17 +148,16 @@ export default () => {
 		adj_list=chain_yx=[];
 		update_display();
 	}
-	/**todo : DATALINK先が存在しないときの処理*/
 	const startgame = () => {
 		const StageID = document.getElementById('StageLink').value;
 		if(isNaN(StageID)){
-			console.error(`GUARD! StageID ${StageID} is NaN`)
-			return endscene();
+			endscene();
+			throw TypeError(`GUARD! StageID ${StageID} is NaN`);
 		}
 		const DATALINK = "../Data/Stage/"+StageID+".js";
 		DIV_PUZ_DISPLAY.style.display="block";
 		import(DATALINK)
-		.then(x => {DATA = object_copy(x.default) ; board_init()});
+		.then(x => {DATA = object_copy(x.default) ; board_init()}).catch(x => {endscene();throw x});
 	};
 	document.getElementById('move_GAME').onclick=startgame;
 }
