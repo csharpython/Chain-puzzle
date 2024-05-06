@@ -15,11 +15,23 @@ export default () => {
 	//SECTOR_2.5:準const変数群
 	let PUZ_BOARD_BONE=new Array();
 	let DATA={};
-	// SECTOR_3:関数マニュアル
-	// onmouce_cell(cell) : チェイン中の処理とかやってます
-	const endscene = () => {
+	// SECTOR 3 : 関数群
+	const object_copy = x => JSON.parse(JSON.stringify(x));
+	const objectevery = (o,f) => Object.keys(o).every(x => f(o[x]));
+	const endscene = (x = null) => {
 		DIV_PUZ_DISPLAY.style.display="none";
 		document.getElementById('move_START').onclick();
+		if(x)throw x;
+	}
+	const gameClear = () => {
+		if(!(DATA.target.score >= 0 && objectevery(DATA.target?.obj,x => x <= 0) && objectevery(DATA.target?.field,x => x <= 0))) return;
+		alert("GAME CLEAR");
+		endscene();
+	}
+	const addScore = dscore => {
+		const wasNegativeScore = DATA.target.score < 0;
+		DATA.target.score += dscore;
+		wasNegativeScore && DATA.target.score >= 0 && gameClear();
 	}
 	const getType = obj => obj[0];
 	const isnullobj = obj => getType(obj) === 0;
@@ -34,28 +46,35 @@ export default () => {
 		[`Pictures/Orbs/${getType(DATA.board.obj[y][x])}.svg`,`Pictures/Fields/${getType(DATA.board.field[y][x])}.svg`,
 		alt_text(getType(DATA.board.obj[y][x]),true),alt_text(getType(DATA.board.field[y][x]),false)];
 	}
-	const object_copy = x => JSON.parse(JSON.stringify(x));
 	const update_display = () => {
 		for(let i=0;i<DATA.size.Height;i++)for(let j=0;j<DATA.size.Width;j++)update_cell(i,j);
 		document.getElementById('puz_info').innerText = `Score : ${DATA.target.score} Hand : ${DATA.target.hand}`;
 	}
 	const obj_erase = obj => [obj[0],obj[1]] = [0,0];
+	/**
+		Todo : ゲームクリア時の処理を適切なものに置き換え
+	*/
 	const break_obj = (y,x,ischain,isobj=true) => {
 		const TARGET = isobj?DATA.board.obj[y][x]:DATA.board.field[y][x];
-		if(--TARGET[1]<=0||ischain){
-			if(!isobj&&getType(TARGET) === 1)DATA.target.score+=BASE_SCORE;
+		const OBJTYPE = getType(TARGET);
+		if(--TARGET[1] <= 0||ischain){
+			if(!isobj&&OBJTYPE === 1)addScore(BASE_SCORE);
+			const TARGETrEMAIN = DATA.target?.[isobj?"obj":"field"];
+			if(TARGETrEMAIN?.[OBJTYPE] && TARGETrEMAIN[OBJTYPE] > 0){
+				TARGETrEMAIN[OBJTYPE]--;
+				console.info(`${isobj?"obj":"field"} ${OBJTYPE} : Remaing ${TARGETrEMAIN[OBJTYPE]}`);
+				(TARGETrEMAIN[OBJTYPE] <= 0) && gameClear();
+			}
 			obj_erase(TARGET);
 			update_cell(y,x);
 			isobj && dest_sync(DATA.board.field[y][x]) && break_obj(y,x,false,false);
 		}
 	}
 	const fall_obj = (obj_from,obj_to) => {
-		if(isnullobj(obj_to) && fallable(obj_from)){
-			[obj_to[0],obj_to[1]]=obj_from;
-			obj_erase(obj_from);
-			return true;
-		}
-		else return false;
+		if(!(isnullobj(obj_to) && fallable(obj_from))) return false;
+		[obj_to[0],obj_to[1]]=obj_from;
+		obj_erase(obj_from);
+		return true;
 	}
 	const falling_orb = () => {
 		chainable=false;
@@ -90,7 +109,7 @@ export default () => {
 		if(chain_now){//チェイン終了時の処理
 			chain_now=false;
 			if(!(chain_yx.length<SHORTEST_CHAIN)){
-				DATA.target.score += ~~(chain_yx.length**SCORE_EXPONENT*BASE_SCORE);
+				addScore(~~(chain_yx.length**SCORE_EXPONENT*BASE_SCORE));
 				DATA.target.hand--;
 				chain_yx.forEach(pos => {
 					break_obj(pos.y,pos.x,true);
@@ -124,8 +143,8 @@ export default () => {
 		const [HEIGHT,WIDTH] = [DATA.size.Height,DATA.size.Width];
 		PUZ_BOARD_BONE=new Array(HEIGHT).fill().map(_=>Array(WIDTH));
 		MAIN_BOARD.innerHTML = null;
-		if(HEIGHT <= 0){endscene(); throw RangeError(`GUARD! Height : ${HEIGHT} isn't positive`);}
-		if(WIDTH <= 0){endscene();throw RangeError(`GUARD! Height : ${WIDTH} isn't positive`);}
+		if(HEIGHT <= 0)endscene(RangeError(`GUARD! Height : ${HEIGHT} isn't positive`));
+		if(WIDTH <= 0)endscene(RangeError(`GUARD! Height : ${WIDTH} isn't positive`));
 		for (let i = 0; i < HEIGHT; i++) {
 			const TR = document.createElement("tr");
 			TR.classList.add("puz_board_tr");
@@ -150,14 +169,11 @@ export default () => {
 	}
 	const startgame = () => {
 		const StageID = document.getElementById('StageLink').value;
-		if(isNaN(StageID)){
-			endscene();
-			throw TypeError(`GUARD! StageID ${StageID} is NaN`);
-		}
+		if(isNaN(StageID))endscene(TypeError(`GUARD! StageID ${StageID} is NaN`));
 		const DATALINK = "../Data/Stage/"+StageID+".js";
 		DIV_PUZ_DISPLAY.style.display="block";
 		import(DATALINK)
-		.then(x => {DATA = object_copy(x.default) ; board_init()}).catch(x => {endscene();throw x});
-	};
+		.then(x => {DATA = object_copy(x.default) ; board_init()}).catch(x => endscene(x));
+	}
 	document.getElementById('move_GAME').onclick=startgame;
 }
