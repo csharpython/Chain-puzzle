@@ -6,6 +6,8 @@ export default () => {
 	const SHORTEST_CHAIN=3;
 	const MAIN_BOARD = document.getElementById('puz_board');
 	const DIV_PUZ_DISPLAY = document.getElementById('puz_display');
+	const DIV_PUZ_INFO = document.getElementById('puz_info');
+	const DIV_TARGET_INFO = document.getElementById('target_info');
 	const [ALT_ORB,ALT_OBJECT,ALT_FIELD] = ["□🔴🔵🟢🟡🟣","□🧱🌸","□🥬"];
 	// SECTOR_2:変数群
 	let [chain_now,chainable]=[false,false];
@@ -16,21 +18,29 @@ export default () => {
 	let PUZ_BOARD_BONE=new Array();
 	let DATA={};
 	// SECTOR 3 : 関数群
-	const object_copy = x => JSON.parse(JSON.stringify(x));
-	const objectevery = (o,f) => Object.keys(o).every(x => f(o[x]));
-	const endscene = (x = null) => {
+	/**@todo Dateオブジェクトなど、一部のオブジェクトがコピーできないのでその対策。 */
+	const object_copy = obj => JSON.parse(JSON.stringify(obj));
+	
+	/**
+	 * Array.everyのobject版です。
+	 * @param {object} obj
+	 * @param {Function} func
+	*/
+	const objectevery = (obj,func) => Object.keys(obj).every(x => func(obj[x]));
+
+	const endscene = (err = null) => {
 		DIV_PUZ_DISPLAY.style.display="none";
 		document.getElementById('move_START').onclick();
-		if(x)throw x;
+		if(err)throw err;
 	}
 	const gameClear = () => {
 		if(!(DATA.target.score >= 0 && objectevery(DATA.target?.obj,x => x <= 0) && objectevery(DATA.target?.field,x => x <= 0))) return;
 		alert("GAME CLEAR");
 		endscene();
 	}
-	const addScore = dscore => {
+	const addScore = score_mult => {
 		const wasNegativeScore = DATA.target.score < 0;
-		DATA.target.score += dscore;
+		DATA.target.score += Math.floor(BASE_SCORE * score_mult);
 		wasNegativeScore && DATA.target.score >= 0 && gameClear();
 	}
 	const getType = obj => obj[0];
@@ -48,21 +58,22 @@ export default () => {
 	}
 	const update_display = () => {
 		for(let i=0;i<DATA.size.Height;i++)for(let j=0;j<DATA.size.Width;j++)update_cell(i,j);
-		document.getElementById('puz_info').innerText = `Score : ${DATA.target.score} Hand : ${DATA.target.hand}`;
+		DIV_PUZ_INFO.innerText = `Score : ${DATA.target.score} Hand : ${DATA.target.hand}`;
 	}
+	/** @todo 文字サイズ */
+	const updateTarget = () => DIV_TARGET_INFO.innerHTML = Object.keys(DATA.target.obj).map(str => Number(str)).map(type => `<img src="Pictures/Orbs/${type}.svg",width="40" height="40" alt="${alt_text(type, true)}">` + "x" + String(DATA.target.obj[type])).toString() + "," +
+		Object.keys(DATA.target.field).map(str => Number(str)).map(type => `<img src="Pictures/Fields/${type}.svg",width="40" height="40" alt="${alt_text(type, false)}">` + "x" + String(DATA.target.field[type])).toString();
+	
 	const obj_erase = obj => [obj[0],obj[1]] = [0,0];
-	/**
-		Todo : ゲームクリア時の処理を適切なものに置き換え
-	*/
 	const break_obj = (y,x,ischain,isobj=true) => {
 		const TARGET = isobj?DATA.board.obj[y][x]:DATA.board.field[y][x];
 		const OBJTYPE = getType(TARGET);
 		if(--TARGET[1] <= 0||ischain){
-			if(!isobj&&OBJTYPE === 1)addScore(BASE_SCORE);
+			if(!isobj&&OBJTYPE === 1)addScore(1);
 			const TARGETrEMAIN = DATA.target?.[isobj?"obj":"field"];
 			if(TARGETrEMAIN?.[OBJTYPE] && TARGETrEMAIN[OBJTYPE] > 0){
 				TARGETrEMAIN[OBJTYPE]--;
-				console.info(`${isobj?"obj":"field"} ${OBJTYPE} : Remaing ${TARGETrEMAIN[OBJTYPE]}`);
+				updateTarget();
 				(TARGETrEMAIN[OBJTYPE] <= 0) && gameClear();
 			}
 			obj_erase(TARGET);
@@ -102,6 +113,7 @@ export default () => {
 		cell.target.querySelector("img").classList.add("chaining");
 		chain_yx.push({x : CELL_X,y : CELL_Y});
 	}
+	/** @todo 比較的複雑なため、複数の関数に分ける*/
 	const chain_toggler = cell => {
 		if(!chainable)return;
 		const [CELL_Y,CELL_X] = [cell.target.parentNode.rowIndex,cell.target.cellIndex];
@@ -109,7 +121,7 @@ export default () => {
 		if(chain_now){//チェイン終了時の処理
 			chain_now=false;
 			if(!(chain_yx.length<SHORTEST_CHAIN)){
-				addScore(~~(chain_yx.length**SCORE_EXPONENT*BASE_SCORE));
+				addScore(chain_yx.length**SCORE_EXPONENT);
 				DATA.target.hand--;
 				chain_yx.forEach(pos => {
 					break_obj(pos.y,pos.x,true);
@@ -166,6 +178,7 @@ export default () => {
 		falling_orb();
 		adj_list=chain_yx=[];
 		update_display();
+		updateTarget();
 	}
 	const startgame = () => {
 		const StageID = document.getElementById('StageLink').value;
