@@ -9,10 +9,15 @@ export default () => {
 	const DIV_PUZ_INFO = document.getElementById('puz_info');
 	const DIV_TARGET_INFO = document.getElementById('target_info');
 	const [ALT_ORB,ALT_OBJECT,ALT_FIELD] = ["□🔴🔵🟢🟡🟣","□🧱🌸","□🥬"];
+	const ENUM_STATUS = Object.freeze({
+		CHAINING : 0,
+		IDLE : 1,
+		ANIMATION : 2
+	});
 	// SECTOR_2:変数群
-	let [chain_now,chainable]=[false,false];
-	let chain_color=null;
-	let chain_yx =new Array();//[i].(x | y)
+	let game_state = ENUM_STATUS.CHAINING;
+	let chain_color = null;
+	let chain_yx = new Array();//[i].(x | y)
 	let adj_list = new Array();//[i].(y | x)
 	//SECTOR_2.5:準const変数群
 	let PUZ_BOARD_BONE=new Array();
@@ -38,9 +43,9 @@ export default () => {
 		alert("GAME CLEAR");
 		endscene();
 	}
-	const addScore = score_mult => {
+	const addScore = (score_mult, base = BASE_SCORE) => {
 		const wasNegativeScore = DATA.target.score < 0;
-		DATA.target.score += Math.floor(BASE_SCORE * score_mult);
+		DATA.target.score += Math.floor(base * score_mult);
 		wasNegativeScore && DATA.target.score >= 0 && gameClear();
 	}
 	const getType = obj => obj[0];
@@ -88,7 +93,7 @@ export default () => {
 		return true;
 	}
 	const falling_orb = () => {
-		chainable=false;
+		game_state = ENUM_STATUS.ANIMATION;
 		const FALL_TIMER = setInterval(() => {
 			let refall=false;
 			for(let i=DATA.size.Height-1;i>0;i--)/*性質上、下から探索したほうがいい*/{
@@ -99,13 +104,13 @@ export default () => {
 			DATA.board.obj[0] = DATA.board.obj[0].map(x => isnullobj(x)?(refall = true , [~~(Math.random()*ORB_COLORS)+1,1]):x);
 			if(!refall){
 				clearInterval(FALL_TIMER);
-				chainable=true;
+				game_state = ENUM_STATUS.IDLE;
 			}
 			update_display();
 		},ANIM_SPEED);
 	}
 	const chain_connect = cell => {
-		if(!chain_now) return;
+		if(game_state !== ENUM_STATUS.CHAINING) return;
 		const [CELL_Y,CELL_X] = [cell.target.parentNode.rowIndex,cell.target.cellIndex];
 		const CELL_COLOR = getType(DATA.board.obj[CELL_Y][CELL_X]);
 		if(!(Math.abs(chain_yx.at(-1).y-CELL_Y) <= 1 && Math.abs(chain_yx.at(-1).x-CELL_X)<=1)) return; /*位置チェック*/
@@ -113,42 +118,48 @@ export default () => {
 		cell.target.querySelector("img").classList.add("chaining");
 		chain_yx.push({x : CELL_X,y : CELL_Y});
 	}
-	/** @todo 比較的複雑なため、複数の関数に分ける*/
-	const chain_toggler = cell => {
-		if(!chainable)return;
+	const chain_over = () => {
+		if(!(chain_yx.length<SHORTEST_CHAIN)){
+			addScore(chain_yx.length**SCORE_EXPONENT);
+			DATA.target.hand--;
+			chain_yx.forEach(pos => {
+				break_obj(pos.y,pos.x,true);
+				for(let dy=-1;dy<=1;dy++){
+					const NEWY=pos.y+dy;
+					for(let dx=-1;dx<=1;dx++){
+						const NEWX=pos.x+dx;
+						DATA.board.obj[NEWY]?.[NEWX] && (adj_list.some(e => e.x === NEWX && e.y === NEWY) || adj_list.push({y : NEWY,x : NEWX}));
+					}
+				}
+			});
+			adj_list.forEach(pos =>	is_adj_break(DATA.board.obj[pos.y][pos.x]) && break_obj(pos.y,pos.x,false));
+			update_display();
+			falling_orb();
+		}
+		game_state = ENUM_STATUS.IDLE;
+		chain_yx.forEach(pos => PUZ_BOARD_BONE[pos.y][pos.x].querySelector("img").classList.remove("chaining"));
+		chain_color = null;
+		adj_list = chain_yx = [];
+		if(DATA.target.hand <= 0){
+			alert(`ゲームオーバー！　スコアは${DATA.target.score}でした!`);
+			endscene();
+		}
+	}
+	const chain_start = cell => {
 		const [CELL_Y,CELL_X] = [cell.target.parentNode.rowIndex,cell.target.cellIndex];
 		const CELL_COLOR = getType(DATA.board.obj[CELL_Y][CELL_X]);
-		if(chain_now){//チェイン終了時の処理
-			chain_now=false;
-			if(!(chain_yx.length<SHORTEST_CHAIN)){
-				addScore(chain_yx.length**SCORE_EXPONENT);
-				DATA.target.hand--;
-				chain_yx.forEach(pos => {
-					break_obj(pos.y,pos.x,true);
-					for(let dy=-1;dy<=1;dy++){
-						const NEWY=pos.y+dy;
-						for(let dx=-1;dx<=1;dx++){
-							const NEWX=pos.x+dx;
-							DATA.board.obj[NEWY]?.[NEWX] && (adj_list.some(e => e.x === NEWX && e.y === NEWY) || adj_list.push({y : NEWY,x : NEWX}));
-						}
-					}
-				});
-				adj_list.forEach(pos =>	is_adj_break(DATA.board.obj[pos.y][pos.x]) && break_obj(pos.y,pos.x,false));
-				update_display();
-				falling_orb();
-			}
-			chain_yx.forEach(pos => PUZ_BOARD_BONE[pos.y][pos.x].querySelector("img").classList.remove("chaining"));
-			chain_color = null;
-			adj_list = chain_yx = [];
-			if(DATA.target.hand <= 0){
-				alert(`ゲームオーバー！　スコアは${DATA.target.score}でした!`);
-				endscene();
-			}
-		}else if(CELL_COLOR > 0){//チェイン開始の処理
-			chain_now = true;
-			chain_color = CELL_COLOR;
-			chain_yx.push({x : CELL_X,y : CELL_Y});
-			cell.target.querySelector("img").classList.add("chaining");
+		if(!(CELL_COLOR > 0)) return;
+		game_state = ENUM_STATUS.CHAINING;
+		chain_color = CELL_COLOR;
+		chain_yx.push({x : CELL_X,y : CELL_Y});
+		cell.target.querySelector("img").classList.add("chaining");
+	}
+	const chain_toggler = cell => {
+		switch (game_state) {
+			case ENUM_STATUS.ANIMATION: return;
+			case ENUM_STATUS.CHAINING: chain_over(); break;
+			case ENUM_STATUS.IDLE : chain_start(cell); break;
+			default : endscene(TypeError(`GUARD! unknown game_state : ${game_state}`));
 		}
 	}
 	const load_board = () => {
@@ -156,7 +167,7 @@ export default () => {
 		PUZ_BOARD_BONE=new Array(HEIGHT).fill().map(_=>Array(WIDTH));
 		MAIN_BOARD.innerHTML = null;
 		if(HEIGHT <= 0)endscene(RangeError(`GUARD! Height : ${HEIGHT} isn't positive`));
-		if(WIDTH <= 0)endscene(RangeError(`GUARD! Height : ${WIDTH} isn't positive`));
+		if(WIDTH <= 0)endscene(RangeError(`GUARD! Width : ${WIDTH} isn't positive`));
 		for (let i = 0; i < HEIGHT; i++) {
 			const TR = document.createElement("tr");
 			TR.classList.add("puz_board_tr");
