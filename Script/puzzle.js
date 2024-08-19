@@ -4,28 +4,23 @@ export default () => {
 	const [BASE_SCORE,SCORE_EXPONENT]=[100,1.5];
 	const ANIM_SPEED=100;
 	const SHORTEST_CHAIN=3;
+	const CONTINUE_BONUS=5;
 	const MAIN_BOARD = document.getElementById('puz_board');
 	const DIV_PUZ_DISPLAY = document.getElementById('puz_display');
 	const DIV_PUZ_INFO = document.getElementById('puz_info');
 	const DIV_TARGET_INFO = document.getElementById('target_info');
 	const [ALT_ORB,ALT_OBJECT,ALT_FIELD] = ["□🔴🔵🟢🟡🟣","□🧱🌸","□🥬"];
-	const ENUM_STATUS = Object.freeze({
-		CHAINING : 0,
-		IDLE : 1,
-		ANIMATION : 2
-	});
+	const ENUM_STATUS = Object.freeze({CHAINING : 0,IDLE : 1,ANIMATION : 2});
 	// SECTOR_2:変数群
 	let game_state = ENUM_STATUS.CHAINING;
 	let chain_color = null;
-	let chain_yx = new Array();//[i].(x | y)
-	let adj_list = new Array();//[i].(y | x)
+	let chain_yx = [];//[i].(x | y)
 	//SECTOR_2.5:準const変数群
-	let PUZ_BOARD_BONE=new Array();
+	let PUZ_BOARD_BONE=[];
 	let DATA={};
 	// SECTOR 3 : 関数群
 	/**@todo Dateオブジェクトなど、一部のオブジェクトがコピーできないのでその対策。 */
 	const object_copy = obj => JSON.parse(JSON.stringify(obj));
-	
 	/**
 	 * Array.everyのobject版です。
 	 * @param {object} obj
@@ -54,6 +49,7 @@ export default () => {
 	const is_adj_break = obj => [-2].includes(getType(obj));
 	const dest_sync = field => [1].includes(getType(field));
 	const alt_text = (type,isobj) => isobj?(type<0?ALT_OBJECT[-type]:ALT_ORB[type]):ALT_FIELD[type];
+	const get_img = (type,isobj) => `<img src="Pictures/${isobj?"Orbs":"Fields"}/${type}.svg",width="40" height="40" alt="${alt_text(type, isobj)}">`;
 	const update_cell = (y,x) =>{
 		const CELL=PUZ_BOARD_BONE[y][x];
 		[CELL.querySelector("img.object").src,CELL.querySelector("img.field").src,
@@ -66,8 +62,9 @@ export default () => {
 		DIV_PUZ_INFO.innerText = `Score : ${DATA.target.score} Hand : ${DATA.target.hand}`;
 	}
 	/** @todo 文字サイズ */
-	const updateTarget = () => DIV_TARGET_INFO.innerHTML = Object.keys(DATA.target.obj).map(str => Number(str)).map(type => `<img src="Pictures/Orbs/${type}.svg",width="40" height="40" alt="${alt_text(type, true)}">` + "x" + String(DATA.target.obj[type])).toString() + "," +
-		Object.keys(DATA.target.field).map(str => Number(str)).map(type => `<img src="Pictures/Fields/${type}.svg",width="40" height="40" alt="${alt_text(type, false)}">` + "x" + String(DATA.target.field[type])).toString();
+	const updateTarget = () => DIV_TARGET_INFO.innerHTML = 
+		Object.keys(DATA.target.obj).map(Number).map(type => get_img(type,true)+ "x" + String(DATA.target.obj[type])).toString() + "," +
+		Object.keys(DATA.target.field).map(Number).map(type => get_img(type,false) + "x" + String(DATA.target.field[type])).toString();
 	
 	const obj_erase = obj => [obj[0],obj[1]] = [0,0];
 	const break_obj = (y,x,ischain,isobj=true) => {
@@ -119,6 +116,7 @@ export default () => {
 		chain_yx.push({x : CELL_X,y : CELL_Y});
 	}
 	const chain_over = () => {
+		let adj_list = [];
 		if(!(chain_yx.length<SHORTEST_CHAIN)){
 			addScore(chain_yx.length**SCORE_EXPONENT);
 			DATA.target.hand--;
@@ -139,8 +137,12 @@ export default () => {
 		game_state = ENUM_STATUS.IDLE;
 		chain_yx.forEach(pos => PUZ_BOARD_BONE[pos.y][pos.x].querySelector("img").classList.remove("chaining"));
 		chain_color = null;
-		adj_list = chain_yx = [];
+		chain_yx = [];
 		if(DATA.target.hand <= 0){
+			if(confirm(`コンテニューしますか？(手数+${CONTINUE_BONUS})`)){
+				DATA.target.hand+=CONTINUE_BONUS;
+				return;
+			}
 			alert(`ゲームオーバー！　スコアは${DATA.target.score}でした!`);
 			endscene();
 		}
@@ -187,7 +189,7 @@ export default () => {
 	const board_init = () => {
 		load_board();
 		falling_orb();
-		adj_list=chain_yx=[];
+		chain_yx=[];
 		update_display();
 		updateTarget();
 	}
@@ -196,8 +198,7 @@ export default () => {
 		if(isNaN(StageID))endscene(TypeError(`GUARD! StageID ${StageID} is NaN`));
 		const DATALINK = "../Data/Stage/"+StageID+".js";
 		DIV_PUZ_DISPLAY.style.display="block";
-		import(DATALINK)
-		.then(x => {DATA = object_copy(x.default) ; board_init()}).catch(x => endscene(x));
+		import(DATALINK).then(x => {DATA = object_copy(x.default) ; board_init()}).catch(endscene);
 	}
 	document.getElementById('move_GAME').onclick=startgame;
 }
