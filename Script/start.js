@@ -1,11 +1,11 @@
-export default () => {
+export default (scenes) => {
 	const DIV_STAGE_SELECT = document.querySelector("#stage_select");
 	const initer = () => {
 		DIV_STAGE_SELECT.style.display = "block";
 		document.querySelector("#startbutton").onclick = () => {
 			DIV_STAGE_SELECT.style.display = "none";
-			document.querySelector("#move_GAME").click();
+			scenes.puzzle(document.getElementById('StageLink').value);
 		}
 	}
-	document.querySelector("#move_START").onclick = initer;
+	return initer;
 }

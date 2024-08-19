@@ -1,4 +1,4 @@
-export default () => {
+export default (scenes) => {
 	// SECTOR_1:定数群
 	const ORB_COLORS=5;
 	const [BASE_SCORE,SCORE_EXPONENT]=[100,1.5];
@@ -30,7 +30,7 @@ export default () => {
 
 	const endscene = (err = null) => {
 		DIV_PUZ_DISPLAY.style.display="none";
-		document.getElementById('move_START').onclick();
+		scenes.start();
 		if(err)throw err;
 	}
 	const gameClear = () => {
@@ -193,12 +193,11 @@ export default () => {
 		update_display();
 		updateTarget();
 	}
-	const startgame = () => {
-		const StageID = document.getElementById('StageLink').value;
+	const startgame = (StageID) => {
 		if(isNaN(StageID))endscene(TypeError(`GUARD! StageID ${StageID} is NaN`));
 		const DATALINK = "../Data/Stage/"+StageID+".js";
 		DIV_PUZ_DISPLAY.style.display="block";
 		import(DATALINK).then(x => {DATA = object_copy(x.default) ; board_init()}).catch(endscene);
 	}
-	document.getElementById('move_GAME').onclick=startgame;
+	return startgame;
 }
