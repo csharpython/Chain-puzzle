@@ -1,28 +1,25 @@
-.scene_mover{
-	display: none;
-}
-table.board{
-	table-layout:fixed;
-	border:solid #333 5px;
+table.board {
+	table-layout: fixed;
+	border: solid #333 5px;
 	border-collapse: collapse;
 }
-td.inboard{
-	text-align:center;
+td.inboard {
+	text-align: center;
 	position: relative;
 	display: inline-block;
 	height: 40px;
-	width : 40px;
-	border:solid #333 3px;
+	width: 40px;
+	border: solid #333 3px;
 }
-img.chaining{
+img.chaining {
 	opacity: 0.7;
 }
-img.notouch{
+img.notouch {
 	vertical-align: middle;
 	user-select: none;
 	pointer-events: none;
 }
-img.upper{
+img.upper {
 	position: absolute;
 	right: 0%;
 	bottom: 0%;
