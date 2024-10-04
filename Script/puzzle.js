@@ -4,7 +4,7 @@ export default scenes => {
 	const [BASE_SCORE, SCORE_EXPONENT] = [100, 1.5];
 	const ANIM_SPEED = 100;
 	const SHORTEST_CHAIN = 3;
-	const CONTINUE_BONUS = 5;
+	const [CONTINUE_BONUS, CONTINUE_COST] = [5, 100];
 	const MAIN_BOARD = document.getElementById("puz_board");
 	const DIV_PUZ_DISPLAY = document.getElementById("puz_display");
 	const DIV_PUZ_INFO = document.getElementById("puz_info");
@@ -177,8 +177,12 @@ export default scenes => {
 		chain_color = null;
 		chain_yx = [];
 		if (DATA.target.hand <= 0) {
-			if (confirm(`コンテニューしますか？(手数+${CONTINUE_BONUS})`)) {
+			if (
+				Number(localStorage.haveCoin) >= CONTINUE_COST &&
+				confirm(`コンテニューしますか？(手数+${CONTINUE_BONUS})`)
+			) {
 				DATA.target.hand += CONTINUE_BONUS;
+				localStorage.haveCoin -= CONTINUE_COST;
 				return;
 			}
 			alert(`ゲームオーバー！　スコアは${DATA.target.score}でした!`);
@@ -251,3 +255,4 @@ export default scenes => {
 	};
 	return startgame;
 };
+
