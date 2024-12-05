@@ -1,4 +1,6 @@
+import dataSaver from "./dataSaver.js";
 export default (scenes) => {
+    const SAVER = new dataSaver("savedata");
     const ORB_COLORS = 5;
     const [BASE_SCORE, SCORE_EXPONENT] = [100, 1.5];
     const ANIM_SPEED = 100;
@@ -169,10 +171,10 @@ export default (scenes) => {
         chain_color = -1;
         chain_yx = [];
         if (DATA.target.hand <= 0) {
-            if (Number(localStorage.haveCoin) >= CONTINUE_COST &&
+            if (SAVER.getData(["haveCoin"]) >= CONTINUE_COST &&
                 confirm(`コンテニューしますか？(手数+${CONTINUE_BONUS})`)) {
                 DATA.target.hand += CONTINUE_BONUS;
-                localStorage.haveCoin -= CONTINUE_COST;
+                SAVER.setData(["haveCoin"], SAVER.getData(["haveCoin"]) - CONTINUE_COST);
                 return;
             }
             alert(`ゲームオーバー！　スコアは${DATA.target.score}でした!`);
