@@ -11,7 +11,7 @@ export default class dataSaver {
 		this.ref = ref;
 		//init
 		if (localStorage.getItem(ref) == null) localStorage.setItem(ref, "{}");
-		this.data = JSON.parse(localStorage.getItem(ref));
+		this.dsata = JSON.parse(localStorage.getItem(ref));
 	}
 	/**
 	 * データを読み取る
