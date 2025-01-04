@@ -1,6 +1,7 @@
 "use strict";
 export default class dataSaver {
 	//class dataSaver {
+	ref;data;
 	/**
 	 * dataSaverクラスのインスタンスを生成。保存先がnullなら空のJSONを保存する。
 	 * @constructor
@@ -11,7 +12,7 @@ export default class dataSaver {
 		this.ref = ref;
 		//init
 		if (localStorage.getItem(ref) == null) localStorage.setItem(ref, "{}");
-		this.dsata = JSON.parse(localStorage.getItem(ref));
+		this.data = JSON.parse(localStorage.getItem(ref));
 	}
 	/**
 	 * データを読み取る

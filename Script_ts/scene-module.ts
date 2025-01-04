@@ -1,7 +1,7 @@
-import START from "./start.js";
-import PUZZLE from "./puzzle.js";
-const scenes : {start? : Function ,puzzle? : Function} = {};
-scenes.start = START(scenes);
-scenes.puzzle = PUZZLE(scenes);
+import startScene from "./start.js";
+import scenePuzzle from "./puzzle.js";
+const scenes : {start? : startScene ,puzzle? : scenePuzzle} = {};
+scenes.start = new startScene(scenes);
+scenes.puzzle = new scenePuzzle(scenes);
 Object.freeze(scenes);
-scenes.start(false);
+scenes.start.initer(false);
