@@ -4,23 +4,29 @@ interface point {
 	y: number;
 }
 /**@todo Dateオブジェクトなど、一部のオブジェクトがコピーできないのでその対策。 */
-const object_copy = (obj: any) => JSON.parse(JSON.stringify(obj));
+const object_copy = (obj: unknown) => JSON.parse(JSON.stringify(obj));
 
 /**
  * Array.someのobject版です。
  */
-const objectSome = (obj : any, func : any) => Object.keys(obj).some(x => func(obj[x]));
+const objectSome = <T>(obj : Record<string,T>, func : (x:T) => boolean) => Object.keys(obj).some(x => func(obj[x]));
+const enum ENUM_STATUS {
+	"CHAINING",
+	"IDLE",
+	"ANIMATION"
+};
+import type {Board} from "../Data/Stage/format.ts";
 export default class scenePuzzle{
 	// SECTOR_1:定数群
-	scenes : any = {};
-	constructor(scenes : any){
+	scenes : {start?:any} = {start:undefined};
+	constructor(scenes : {start?:any}){
 		this.scenes = scenes;
 	}
 	SAVER = new dataSaver("savedata");
 	ORB_COLORS = 5 as const;
 	BASE_SCORE = 100 as const;
 	SCORE_EXPONENT = 1.5 as const;
-	ANIM_SPEED = 100 as const;
+	ANIM_SPEED = 200 as const;
 	SHORTEST_CHAIN = 3 as const;
 	CONTINUE_BONUS = 5 as const;
 	CONTINUE_COST = 100 as const;
@@ -31,14 +37,13 @@ export default class scenePuzzle{
 	ALT_ORB = "□🔴🔵🟢🟡🟣" as const;
 	ALT_OBJECT = "□🧱🌸" as const;
 	ALT_FIELD = "□🥬" as const;
-	ENUM_STATUS = Object.freeze({ CHAINING: 0, IDLE: 1, ANIMATION: 2 });
 	// SECTOR_2:変数群
-	game_state: number = this.ENUM_STATUS.CHAINING;
+	game_state: number = ENUM_STATUS.CHAINING;
 	chain_color: number = -1;
 	chain_yx: point[] = []; //[i].(x | y)
 	//SECTOR_2.5:準const変数群
 	PUZ_BOARD_BONE: HTMLElement[][] = [];
-	DATA: {[x:string] : any} = {};
+	DATA: Board = {} as Board;
 	STAGE_ID: number = -1;
 	// SECTOR 3 : 関数群
 	endscene(err: Error | null = null, wasSuccess = false){
@@ -58,12 +63,12 @@ export default class scenePuzzle{
 		return true;
 	};
 	addScore(score_mult: number, base = this.BASE_SCORE){this.DATA.target.score += Math.floor(base * score_mult)};
-	getType(obj: any[]){return obj[0]};
-	getCellPos(cell: {target : any}){return [cell.target.parentNode.rowIndex, cell.target.cellIndex]};
-	isnullobj(obj: any[]){return this.getType(obj) === 0;}
-	fallable(obj: any[]){return this.getType(obj) > 0 || [-2].includes(this.getType(obj));}
-	is_adj_break(obj: any[]){return [-2].includes(this.getType(obj));}
-	dest_sync(field: any[]){return [1].includes(this.getType(field))};
+	getType(obj: number[]){return obj[0]};
+	getCellPos(cell: {target : any}):[number,number] {return [cell.target.parentNode.rowIndex, cell.target.cellIndex]};
+	isnullobj(obj: number[]){return this.getType(obj) === 0;}
+	fallable(obj: number[]){return this.getType(obj) > 0 || [-2].includes(this.getType(obj));}
+	is_adj_break(obj: number[]){return [-2].includes(this.getType(obj));}
+	dest_sync(field: number[]){return [1].includes(this.getType(field))};
 	alt_text(type: number, isobj: boolean){return isobj ? (type < 0 ? this.ALT_OBJECT[-type] : this.ALT_ORB[type]) : this.ALT_FIELD[type];}
 	get_img(type: number, isobj: boolean){return `<img src="Pictures/${
 			isobj ? "Orbs" : "Fields"
@@ -97,7 +102,7 @@ export default class scenePuzzle{
 				.map(type => this.get_img(type, false) + "x" + String(this.DATA.target.field[type]))
 				.toString());
 
-	obj_erase(obj: any[]){[obj[0], obj[1]] = [0, 0]};
+	obj_erase(obj: unknown[]){[obj[0], obj[1]] = [0, 0]};
 	break_obj(y: number, x: number, ischain: boolean, isobj = true){
 		const TARGET = isobj ? this.DATA.board.obj[y][x] : this.DATA.board.field[y][x];
 		const OBJTYPE = this.getType(TARGET);
@@ -113,14 +118,14 @@ export default class scenePuzzle{
 			isobj && this.dest_sync(this.DATA.board.field[y][x]) && this.break_obj(y, x, false, false);
 		}
 	};
-	fall_obj<T>(obj_from: T[], obj_to: T[]){
+	fall_obj(obj_from: number[], obj_to: number[]){
 		if (!this.isnullobj(obj_to) || !this.fallable(obj_from)) return false;
 		[obj_to[0], obj_to[1]] = obj_from;
 		this.obj_erase(obj_from);
 		return true;
 	};
 	falling_orb(){
-		this.game_state = this.ENUM_STATUS.ANIMATION;
+		this.game_state = ENUM_STATUS.ANIMATION;
 		const FALL_TIMER = setInterval(() => {
 			let refall = false;
 			for (let i = this.DATA.size.Height - 1; i > 0; i--) /*性質上、下から探索したほうがいい*/ {
@@ -131,18 +136,18 @@ export default class scenePuzzle{
 				for (let j = 0; j < this.DATA.size.Width - 1; j++)
 					refall = this.fall_obj(this.DATA.board.obj[i - 1][j], this.DATA.board.obj[i][j + 1]) || refall; //R-shift
 			}
-			this.DATA.board.obj[0] = this.DATA.board.obj[0].map((x: any[]) =>
+			this.DATA.board.obj[0] = this.DATA.board.obj[0].map((x: [number,number]) =>
 				this.isnullobj(x) ? ((refall = true), [~~(Math.random() * this.ORB_COLORS) + 1, 1]) : x
 			);
 			if (!refall) {
 				clearInterval(FALL_TIMER);
-				this.game_state = this.ENUM_STATUS.IDLE;
+				this.game_state = ENUM_STATUS.IDLE;
 			}
 			this.update_display();
 		}, this.ANIM_SPEED);
 	};
 	chain_connect(cell : {target : any}){
-		if (this.game_state !== this.ENUM_STATUS.CHAINING) return;
+		if (this.game_state !== ENUM_STATUS.CHAINING) return;
 		const [CELL_Y, CELL_X] = this.getCellPos(cell);
 		const CELL_COLOR = this.getType(this.DATA.board.obj[CELL_Y][CELL_X]);
 		const CHAIN_LAST = this.chain_yx.at(-1) as point;
@@ -175,9 +180,10 @@ export default class scenePuzzle{
 			);
 			this.update_display();
 			this.falling_orb();
+		}else{
+			this.game_state = ENUM_STATUS.IDLE;
 		}
 		if (this.gameClear()) return;
-		this.game_state = this.ENUM_STATUS.IDLE;
 		this.chain_yx.forEach(pos => {
 			const target = this.PUZ_BOARD_BONE[pos.y][pos.x].querySelector("img")!;
 			target.classList.remove("chaining");
@@ -186,11 +192,12 @@ export default class scenePuzzle{
 		this.chain_yx = [];
 		if (this.DATA.target.hand <= 0) {
 			if (
-				this.SAVER.getData(["haveCoin"]) >= this.CONTINUE_COST &&
+				this.SAVER.data.haveCoin >= this.CONTINUE_COST &&
 				confirm(`コンテニューしますか？(手数+${this.CONTINUE_BONUS})`)
 			) {
 				this.DATA.target.hand += this.CONTINUE_BONUS;
-				this.SAVER.setData(["haveCoin"],this.SAVER.getData(["haveCoin"])-this.CONTINUE_COST);
+				this.SAVER.data.haveCoin -= this.CONTINUE_COST;
+				this.SAVER.save();
 				return;
 			}
 			alert(`ゲームオーバー！　スコアは${this.DATA.target.score}でした!`);
@@ -198,22 +205,23 @@ export default class scenePuzzle{
 		}
 	};
 	chain_start(cell : {target : any}){
+		if(this.game_state !== ENUM_STATUS.IDLE)return;
 		const [CELL_Y, CELL_X] = this.getCellPos(cell);
 		const CELL_COLOR = this.getType(this.DATA.board.obj[CELL_Y][CELL_X]);
 		if (CELL_COLOR <= 0) return;
-		this.game_state = this.ENUM_STATUS.CHAINING;
+		this.game_state = ENUM_STATUS.CHAINING;
 		this.chain_color = CELL_COLOR;
 		this.chain_yx.push({ x: CELL_X, y: CELL_Y });
 		cell.target.querySelector("img").classList.add("chaining");
 	};
 	chain_toggler(cell: any){
 		switch (this.game_state) {
-			case this.ENUM_STATUS.ANIMATION:
+			case ENUM_STATUS.ANIMATION:
 				return;
-			case this.ENUM_STATUS.CHAINING:
+			case ENUM_STATUS.CHAINING:
 				this.chain_over();
 				break;
-			case this.ENUM_STATUS.IDLE:
+			case ENUM_STATUS.IDLE:
 				this.chain_start(cell);
 				break;
 			default:
